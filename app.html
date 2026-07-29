@@ -1446,11 +1446,10 @@ function updStats(){
   document.getElementById('statCdLabel').textContent=D.examName||'倒计时';
   const safeGoal=goal||DAILY;
   const pct=Math.min(100,dur/safeGoal*100);
-  // 三种颜色：<30% 浅绿 → 30-70% 中绿 → >70% 深绿
+  // 三色进度：<50% 浅绿 → 50-100% 暖橙 → 100%+ 深绿
   let ringColor,encText;
-  if(pct<30){ringColor='var(--g4)';encText='千里之行，始于足下 🌱'}
-  else if(pct<70){ringColor='var(--g2)';encText='坚持就是胜利，加油！💪'}
-  else if(pct<100){ringColor='var(--g)';encText='胜利在望，冲刺上岸！🔥'}
+  if(pct<50){ringColor='var(--g4)';encText='千里之行，始于足下 🌱'}
+  else if(pct<100){ringColor='var(--o)';encText='坚持就是胜利，加油！💪'}
   else{ringColor='var(--gd)';encText='太棒了！目标达成 🎉'}
   document.getElementById('timerLabel').textContent='今日已学';
   document.getElementById('timerVal').innerHTML=Math.round(pct)+'<span>%</span>';
@@ -2867,7 +2866,17 @@ function checkCtx(){
 
 function moduleOf(sub){const m={'政治理论':'政治','常识判断':'常识','言语理解':'言语','判断推理':'判断','数量关系':'数量','资料分析':'资料'};return m[sub]||'申论';}
 function renderMetrics(){
-  let totalMin=0;Object.values(D.history||{}).forEach(h=>{if(h&&h.duration)totalMin+=h.duration});
+  let totalMin=0;
+  // 统计所有已完成的记录
+  Object.values(D.listenRecords||{}).forEach(arr=>arr.forEach(r=>totalMin+=Math.max(0,(r.end-r.start)/60000)));
+  Object.values(D.practiceRecords||{}).forEach(arr=>arr.forEach(r=>totalMin+=Math.max(0,(r.end-r.start)/60000)));
+  Object.values(D.exams||{}).forEach(arr=>arr.forEach(e=>totalMin+=e.min||0));
+  // 加入进行中的计时
+  const tk=gdk();
+  if(D.L.start&&!D.L.paused)totalMin+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
+  else if(D.L.paused)totalMin+=(D.L.elapsed||0)/60000;
+  if(D.P.start&&!D.P.paused)totalMin+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
+  else if(D.P.paused)totalMin+=(D.P.elapsed||0)/60000;
   let c=0,t=0;Object.values(D.practiceRecords||{}).forEach(arr=>arr.forEach(r=>{t+=r.totalQ||0;c+=r.correctQ||0}));
   const acc=t?Math.round(c/t*100):0;
   document.getElementById('metrics').innerHTML=''
