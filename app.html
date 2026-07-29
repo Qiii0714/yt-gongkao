@@ -1299,10 +1299,14 @@ try{
   if(r){
     D=JSON.parse(r);
     const t=gdk();
-    if(D.lastDate!==t){
+    if(!D.lastDate||D.lastDate!==t){
       // 跨天：仅当没有进行中的计时时才重置，绝不清空正在计时的数据
-      if(!(D.L&&(D.L.start||D.L.paused)))D.L={start:null,paused:false,subject:null,elapsed:0,note:''};localStorage.removeItem('yt_live_timer');
-      if(!(D.P&&(D.P.start||D.P.paused)))D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};
+      const hasActive=(D.L&&(D.L.start||D.L.paused))||(D.P&&(D.P.start||D.P.paused));
+      if(!hasActive){
+        D.L={start:null,paused:false,subject:null,elapsed:0,note:''};
+        D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};
+        localStorage.removeItem('yt_live_timer');
+      }
       D.lastDate=t;
     }
   }
@@ -1412,9 +1416,11 @@ function allToday(){return [...todayListen(),...todayPractice()]}
 function getDur(){
   let t=0;
   allToday().forEach(r=>{t+=Math.max(0,(r.end-r.start)/60000)});
-  if(D.L.start&&!D.L.paused)t+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
+  // 防御：确保 start 是有效时间戳（> 2024-01-01），防止脏数据导致异常大值
+  const validStart=v=>typeof v==='number'&&v>1700000000000;
+  if(D.L.start&&!D.L.paused&&validStart(D.L.start))t+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
   else if(D.L.paused)t+=(D.L.elapsed||0)/60000;
-  if(D.P.start&&!D.P.paused)t+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
+  if(D.P.start&&!D.P.paused&&validStart(D.P.start))t+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
   else if(D.P.paused)t+=(D.P.elapsed||0)/60000;
   return t;
 }
@@ -1534,9 +1540,10 @@ function renderWeekly(){
     E.forEach(e=>{dur+=e.min||0});
     // 计入正在进行的计时（仅当天），让图表随学习实时更新
     if(dk===tk){
-      if(D.L.start&&!D.L.paused)dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
+      const vs=v=>typeof v==='number'&&v>1700000000000;
+      if(D.L.start&&!D.L.paused&&vs(D.L.start))dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
       else if(D.L.paused)dur+=(D.L.elapsed||0)/60000;
-      if(D.P.start&&!D.P.paused)dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
+      if(D.P.start&&!D.P.paused&&vs(D.P.start))dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
       else if(D.P.paused)dur+=(D.P.elapsed||0)/60000;
     }
     const dH=Math.min(100,Math.round(dur/2)),acc=tq>0?Math.round(cq/tq*100):0,aH=Math.min(100,acc);
@@ -1867,8 +1874,13 @@ async function pullFromCloud(){
     const localUpdated=getLocalUpdated();
     const cloudUpdated=rows[0].updated_at;
     if(cloudUpdated&&localUpdated&&new Date(cloudUpdated)<=new Date(localUpdated))return;
+    // 保留当前进行中的计时状态（不被云端旧数据覆盖）
+    const _curL=D.L&&(D.L.start||D.L.paused)?JSON.parse(JSON.stringify(D.L)):null;
+    const _curP=D.P&&(D.P.start||D.P.paused)?JSON.parse(JSON.stringify(D.P)):null;
     D=Object.assign(defData(),cloudData);
     delete D._token; // 不覆盖 token
+    if(_curL)D.L=_curL;
+    if(_curP)D.P=_curP;
     ensureIds();save();
     updStats();renderList();renderWeekly();
     if(typeof renderCal==='function')renderCal();
@@ -1887,6 +1899,10 @@ function autoSyncUserData(){
   if(now-_lastSync<5000){clearTimeout(_syncTimer);_syncTimer=setTimeout(autoSyncUserData,5000);return}
   _lastSync=now;
   syncToCloud().catch(()=>{});
+}
+function autoDualSave(){
+  // 预留：双存储策略的扩展点（本地 + 云端双写）
+  // 当前所有数据已通过 localStorage + Supabase 保存，此函数为空安全占位
 }
 
 function updateSyncTime(){
@@ -2334,7 +2350,7 @@ function startListen(){
   D.L.start=Date.now();D.L.paused=false;D.L.elapsed=0;D.L.subject=listenSubject;
   localStorage.setItem(GK,JSON.stringify(D)); // 立即写主数据
   persistLiveTimer();                        // 立即写独立计时快照
-  autoSyncShare();autoCloudBackup();         // 触发同步/备份（异步）
+  autoSyncShare();autoCloudBackup();autoSyncUserData(); // 触发同步/备份（异步）
   updListenUI();startListenInt();toast('🚀 开始听课：'+listenSubject);
 }
 function toggleListen(){
@@ -2364,8 +2380,9 @@ function resumeListen(){
 function doneListen(){
   if(!D.L.start&&!D.L.paused)return;
   let total;
-  if(D.L.start)total=(D.L.elapsed||0)+Math.max(0,Date.now()-D.L.start);
-  else total=D.L.elapsed||0;
+  const vs3=v=>typeof v==='number'&&v>1700000000000;
+  if(vs3(D.L.start))total=Math.max(0,(D.L.elapsed||0))+Math.max(0,Date.now()-D.L.start);
+  else total=Math.max(0,D.L.elapsed||0);
   const t=gdk();if(!D.listenRecords[t])D.listenRecords[t]=[];
   D.listenRecords[t].push({id:genId(),subject:D.L.subject,type:'listen',start:Date.now()-total,end:Date.now(),note:D.L.note||''});
   recomputeDay(t);
@@ -2416,7 +2433,7 @@ function startPractice(){
   if(D.P.paused){resumePractice();return;}
   D.P.start=Date.now();D.P.paused=false;D.P.elapsed=0;D.P.subject=practiceSubject;D.P.totalQ=0;D.P.correctQ=0;
   localStorage.setItem(GK,JSON.stringify(D)); persistLiveTimer();
-  autoSyncShare();autoCloudBackup();
+  autoSyncShare();autoCloudBackup();autoSyncUserData();
   updPracticeUI();startPracticeInt();toast('🚀 开始刷题：'+practiceSubject);
 }
 function togglePractice(){
@@ -2445,8 +2462,9 @@ function resumePractice(){
 function donePractice(){
   if(!D.P.start&&!D.P.paused)return;
   let totalMs;
-  if(D.P.start)totalMs=(D.P.elapsed||0)+Math.max(0,Date.now()-D.P.start);
-  else totalMs=D.P.elapsed||0;
+  const vs4=v=>typeof v==='number'&&v>1700000000000;
+  if(vs4(D.P.start))totalMs=Math.max(0,(D.P.elapsed||0))+Math.max(0,Date.now()-D.P.start);
+  else totalMs=Math.max(0,D.P.elapsed||0);
   const t=parseInt(document.getElementById('pTotal').value)||0,c=parseInt(document.getElementById('pCorrect').value)||0;
   const tk=gdk();
   const isExam=D.P.subject==='行测套卷'||D.P.subject==='申论套卷';
@@ -2464,7 +2482,6 @@ function donePractice(){
   D.practiceRecords[tk].push({id:genId(),subject:D.P.subject,type:'practice',start:Date.now()-totalMs,end:Date.now(),totalQ:t,correctQ:c});
   recomputeDay(tk);
   D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};localStorage.removeItem('yt_live_timer');
-  localStorage.removeItem('yt_live_timer');
   document.querySelectorAll('#practiceOverlay .subject-btn').forEach(b=>b.classList.remove('selected'));
   document.getElementById('pTotal').value='';document.getElementById('pCorrect').value='';document.getElementById('pResult').textContent='';
   if(practiceInt){clearInterval(practiceInt);practiceInt=null}
@@ -2869,9 +2886,10 @@ function renderMetrics(){
   Object.values(D.exams||{}).forEach(arr=>arr.forEach(e=>totalMin+=e.min||0));
   // 加入进行中的计时
   const tk=gdk();
-  if(D.L.start&&!D.L.paused)totalMin+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
+  const vs2=v=>typeof v==='number'&&v>1700000000000;
+  if(D.L.start&&!D.L.paused&&vs2(D.L.start))totalMin+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
   else if(D.L.paused)totalMin+=(D.L.elapsed||0)/60000;
-  if(D.P.start&&!D.P.paused)totalMin+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
+  if(D.P.start&&!D.P.paused&&vs2(D.P.start))totalMin+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
   else if(D.P.paused)totalMin+=(D.P.elapsed||0)/60000;
   let c=0,t=0;Object.values(D.practiceRecords||{}).forEach(arr=>arr.forEach(r=>{t+=r.totalQ||0;c+=r.correctQ||0}));
   const acc=t?Math.round(c/t*100):0;
@@ -3527,8 +3545,8 @@ if('serviceWorker' in navigator){
   }
   function tlTotalMs(){
     const a=tlActive();
-    let ms=a.elapsed;
-    if(a.active&&a.start) ms += Math.max(0, Date.now()-a.start);
+    let ms=a.elapsed||0;
+    if(a.active&&a.start&&a.start>1700000000000) ms += Math.max(0, Date.now()-a.start);
     return ms;
   }
   function tlRenderTimer(){
