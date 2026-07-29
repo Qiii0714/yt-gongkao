@@ -2395,7 +2395,7 @@ function doneListen(){
   if(listenInt){clearInterval(listenInt);listenInt=null}
   save();closeListen();updStats();renderList();renderWeekly();toast('✅ 听课完成！');
 }
-function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.L.elapsed||0)/1000;const runningSec=D.L.start&&D.L.start>1700000000000?Math.floor((now-D.L.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();persistLiveTimer()},1000)}
+function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.L.elapsed||0)/1000;const runningSec=D.L.start&&D.L.start>1700000000000?Math.floor((now-D.L.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();if(typeof renderTrend==='function')renderTrend();persistLiveTimer()},1000)}
 document.getElementById('listenNote').addEventListener('input',function(){D.L.note=this.value;save()});
 
 // Practice
@@ -2492,7 +2492,7 @@ function donePractice(){
   save();closePractice();updStats();renderList();renderWeekly();renderExamList();
   toast('✅ 刷题完成！');
 }
-function startPracticeInt(){if(practiceInt)clearInterval(practiceInt);practiceInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.P.elapsed||0)/1000;const runningSec=D.P.start&&D.P.start>1700000000000?Math.floor((now-D.P.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('practiceClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();persistLiveTimer()},1000)}
+function startPracticeInt(){if(practiceInt)clearInterval(practiceInt);practiceInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.P.elapsed||0)/1000;const runningSec=D.P.start&&D.P.start>1700000000000?Math.floor((now-D.P.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('practiceClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();if(typeof renderTrend==='function')renderTrend();persistLiveTimer()},1000)}
 function calcP(){const t=parseInt(document.getElementById('pTotal').value)||0,c=parseInt(document.getElementById('pCorrect').value)||0;if(t>0&&c>=0&&c<=t){const pct=Math.round(c/t*100);const el=document.getElementById('pResult');el.textContent='正确率：'+pct+'%';el.style.color=pct>=80?'#2ECC71':(pct>=60?'#E8A85C':'#E74C3C')}}
 document.getElementById('pTotal').addEventListener('input',calcP);
 document.getElementById('pCorrect').addEventListener('input',calcP);
@@ -3937,6 +3937,7 @@ if('serviceWorker' in navigator){
   function tlRefresh(){
     if(!isTL()) return;
     tlRenderStats(); tlRenderTimer(); tlRenderToday(); tlRenderWeekly();
+    if(typeof renderTrend==='function')renderTrend();
   }
   function tlTick(){ if(isTL()) tlRefresh(); }
 
