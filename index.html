@@ -2910,14 +2910,26 @@ function renderMetrics(){
     if(dur>0)checkedDays++;
   });
 
-  const acc=tq?Math.round(cq/tq*100):0;
-  const streakLabel=isCurrentWeek?'连续打卡':'打卡天数';
-  const streakVal=isCurrentWeek?(D.streak||0):checkedDays;
+  const totalH=(totalMin/60).toFixed(1);
+  const dailyAvgH=(totalMin/7/60).toFixed(1);
+  const maxDay=Math.max(...days.map(d=>{
+    const dk=gdk(d);
+    const L=D.listenRecords[dk]||[],P=D.practiceRecords[dk]||[],E=D.exams&&D.exams[dk]?D.exams[dk]:[];
+    let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
+    if(isCurrentWeek&&dk===todayDk){
+      if(D.L.start&&!D.L.paused&&vs2(D.L.start))dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
+      else if(D.L.paused)dur+=(D.L.elapsed||0)/60000;
+      if(D.P.start&&!D.P.paused&&vs2(D.P.start))dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
+      else if(D.P.paused)dur+=(D.P.elapsed||0)/60000;
+    }
+    return dur;
+  }),0);
+  const maxH=(maxDay/60).toFixed(1);
 
   document.getElementById('metrics').innerHTML=''
-    +'<div class="metric"><div class="metric-v">'+fmtDur(totalMin)+'</div><div class="metric-l">总学习时长</div></div>'
-    +'<div class="metric"><div class="metric-v">'+acc+'%</div><div class="metric-l">平均正确率</div></div>'
-    +'<div class="metric"><div class="metric-v">'+streakVal+'</div><div class="metric-l">'+streakLabel+'</div></div>';
+    +'<div class="metric"><div class="metric-v">'+totalH+'h</div><div class="metric-l">总时长</div></div>'
+    +'<div class="metric"><div class="metric-v">'+dailyAvgH+'h</div><div class="metric-l">日均</div></div>'
+    +'<div class="metric"><div class="metric-v">'+maxH+'h</div><div class="metric-l">最长</div></div>';
 }
 // ===== 近30天学习趋势折线图 =====
 function renderTrend(){
@@ -3254,8 +3266,7 @@ function renderReview(){
 
   document.getElementById('reviewSummary').innerHTML=''
     +(isCurrentWeek?'本周':'历史')+'累计：<b>'+fmtDur(weekDur)+'</b> · '
-    +'打卡 <b>'+checkedDays+'/7</b> 天 · '
-    +'刷题 <b>'+weekTQ+'</b> 道'
+    +'打卡 <b>'+checkedDays+'/7</b> 天'
   ;
   // 上/下按钮：当前周时不能往后翻
   const prevBtn=document.querySelector('#viewData .tblock-hd button:first-child');
@@ -3694,13 +3705,23 @@ if('serviceWorker' in navigator){
       cq+=P.reduce((s,r)=>s+(r.correctQ||0),0);
       if(dur>0)checkedDays++;
     });
-    const acc=tq?Math.round(cq/tq*100):0;
-    const streakLabel=isCurrentWeek?'连续打卡':'打卡天数';
-    const streakVal=isCurrentWeek?(D.streak||0):checkedDays;
+    const totalH=(totalMin/60).toFixed(1);
+    const dailyAvgH=(totalMin/7/60).toFixed(1);
+    const maxDay=Math.max(...days.map(d=>{
+      const dk=gdk(d);
+      const L=D.listenRecords[dk]||[],P=D.practiceRecords[dk]||[],E=D.exams&&D.exams[dk]?D.exams[dk]:[];
+      let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
+      if(isCurrentWeek&&dk===todayDk){
+        if(D.L.start&&!D.L.paused)dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000); else if(D.L.paused)dur+=(D.L.elapsed||0)/60000;
+        if(D.P.start&&!D.P.paused)dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000); else if(D.P.paused)dur+=(D.P.elapsed||0)/60000;
+      }
+      return dur;
+    }),0);
+    const maxH=(maxDay/60).toFixed(1);
     const tmEl=$('tlMetrics'); if(tmEl) tmEl.innerHTML=''
-      +'<div class="metric"><div class="metric-v">'+fmtDur(totalMin)+'</div><div class="metric-l">总学习时长</div></div>'
-      +'<div class="metric"><div class="metric-v">'+acc+'%</div><div class="metric-l">平均正确率</div></div>'
-      +'<div class="metric"><div class="metric-v">'+streakVal+'</div><div class="metric-l">'+streakLabel+'</div></div>';
+      +'<div class="metric"><div class="metric-v">'+totalH+'h</div><div class="metric-l">总时长</div></div>'
+      +'<div class="metric"><div class="metric-v">'+dailyAvgH+'h</div><div class="metric-l">日均</div></div>'
+      +'<div class="metric"><div class="metric-v">'+maxH+'h</div><div class="metric-l">最长</div></div>';
   }
   function tlRenderReview(){
     const today=new Date();const todayDk=gdk();
@@ -3763,7 +3784,7 @@ if('serviceWorker' in navigator){
     svg+=`<rect x="${W-padR-50}" y="${padT+2}" width="12" height="8" rx="2" fill="#7A9E7A"/>`;
     svg+='</svg>';
     const rvEl=$('tlReviewTable'); if(rvEl) rvEl.innerHTML=svg;
-    const rvsEl=$('tlReviewSummary'); if(rvsEl) rvsEl.innerHTML=''+(isCurrentWeek?'本周':'历史')+'累计：<b>'+fmtDur(weekDur)+'</b> · 打卡 <b>'+checkedDays+'/7</b> 天 · 刷题 <b>'+weekTQ+'</b> 道';
+    const rvsEl=$('tlReviewSummary'); if(rvsEl) rvsEl.innerHTML=''+(isCurrentWeek?'本周':'历史')+'累计：<b>'+fmtDur(weekDur)+'</b> · 打卡 <b>'+checkedDays+'/7</b> 天';
     const nextBtn=root.querySelector('.tl-fupan-nav button:last-child');
     if(nextBtn)nextBtn.style.visibility=tlReviewOffset>=0?'hidden':'visible';
     // 同步更新上方指标卡片
