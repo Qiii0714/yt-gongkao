@@ -7,12 +7,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="YT考公学习打卡">
 <meta name="theme-color" content="#7A9E7A">
-<link rel="manifest" href="/manifest.json">
+
+
 <script>
 // 内联 Service Worker — 实现离线访问
 if('serviceWorker' in navigator){
   const swCode=`
-const CACHE='yt-gk-v3';
+const CACHE='yt-gk-v1';
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./app.html'])).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim())});
 self.addEventListener('fetch',e=>{
@@ -36,7 +37,7 @@ self.addEventListener('fetch',e=>{
 <style>
 :root{--g:#7A9E7A;--g2:#8FB58F;--g3:#A5C9A5;--g4:#C8DFC8;--g5:#E8F3E8;--gd:#5A7E5A;--o:#E8A85C;--o2:#F0C07A;--tx:#333;--t2:#666;--t3:#999;--t4:#BBB;--bg:#F7F5F0;--c:#FFF;--c2:#F8F6F1;--b:#E8E4DC;--b2:#DDD8CE;--sh:0 2px 8px rgba(0,0,0,.04);--sh2:0 4px 16px rgba(0,0,0,.08);--r:16px;--rs:12px;--mx:520px}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'楷体_GB2312','KaiTi_GB2312','楷体','KaiTi','STKaiti','PingFang SC','Microsoft YaHei',serif;background:var(--bg);color:var(--tx);margin:0 auto;min-height:100vh;max-width:var(--mx);line-height:1.5;display:flex;flex-direction:column}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--tx);margin:0 auto;min-height:100vh;max-width:var(--mx);line-height:1.5;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;justify-content:center;padding:12px 16px 8px;position:relative}
 .topbar-title{font-size:18px;font-weight:700;color:var(--tx)}
 .gear{position:absolute;right:16px;font-size:20px;color:var(--t2);cursor:pointer;padding:4px;line-height:1}
@@ -62,11 +63,11 @@ body{font-family:'楷体_GB2312','KaiTi_GB2312','楷体','KaiTi','STKaiti','Ping
 .timer-ring{position:absolute;inset:0}
 .timer-ring-bg{fill:none;stroke:var(--g4);stroke-width:8}
 .timer-ring-fill{fill:none;stroke:var(--g);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s;transform:rotate(-90deg);transform-origin:50% 50%}
-.timer-circle{width:160px;height:160px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--c);transition:transform .2s;z-index:1;gap:4px;text-align:center}
-.timer-val{font-size:28px;font-weight:300;color:var(--t3);letter-spacing:1px;line-height:1.2}
+.timer-circle{width:160px;height:160px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--c);transition:transform .2s;z-index:1}
+.timer-val{font-size:28px;font-weight:300;color:var(--t3);letter-spacing:1px}
 .timer-val span{font-weight:400}
-.timer-label{font-size:15px;font-weight:600;color:var(--tx);line-height:1.2}
-.timer-enc{font-size:13px;color:var(--t2);line-height:1.2}
+.timer-label{font-size:15px;font-weight:600;color:var(--tx);margin-top:4px}
+.timer-enc{font-size:13px;color:var(--t2);margin-top:2px}
 .timer-hint{font-size:13px;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:6px}
 .timer-hint .arrow{color:var(--g);font-size:16px}
 .sec{margin:0 16px 8px;background:var(--c);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
@@ -105,16 +106,6 @@ body{font-family:'楷体_GB2312','KaiTi_GB2312','楷体','KaiTi','STKaiti','Ping
 .overlay.hidden{display:none}
 .panel{background:var(--bg);border-radius:20px;padding:20px;width:calc(100% - 32px);max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh2);animation:popIn .25s}
 @keyframes popIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes ringPulse{0%,100%{box-shadow:inset 0 0 0 0 var(--pulse-c,transparent)}50%{box-shadow:inset 0 0 20px 6px var(--pulse-c,transparent)}}
-@keyframes ringPulseGoal{0%,100%{box-shadow:inset 0 0 0 0 rgba(122,158,122,.4)}50%{box-shadow:inset 0 0 24px 10px rgba(122,158,122,.3)}}
-.timer-circle{transition:box-shadow .5s,background .5s,transform .3s}
-.timer-circle-wrap.pulse-slow .timer-circle{animation:ringPulse 5s ease-in-out infinite;--pulse-c:rgba(165,201,165,.4)}
-.timer-circle-wrap.pulse-mid .timer-circle{animation:ringPulse 5s ease-in-out infinite;--pulse-c:rgba(232,168,92,.4)}
-.timer-circle-wrap.pulse-fast .timer-circle{animation:ringPulse 5s ease-in-out infinite;--pulse-c:rgba(122,158,122,.5)}
-.timer-circle-wrap.goal-reached .timer-ring-fill{stroke:var(--gd)}
-.timer-circle-wrap.goal-reached .timer-val{color:var(--gd)}
-.timer-circle-wrap.goal-reached .timer-label{color:var(--gd)}
-.timer-circle-wrap.goal-reached .timer-circle{background:var(--g5)}
 .panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .panel-tt{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px}
 .panel-close{font-size:20px;color:var(--t3);cursor:pointer;padding:4px;line-height:1}
@@ -220,45 +211,6 @@ body{font-family:'楷体_GB2312','KaiTi_GB2312','楷体','KaiTi','STKaiti','Ping
 .toast.hidden{opacity:0}
 .footer{height:20px;text-align:center;font-size:10px;color:var(--t4);padding:4px 0 8px;margin-top:auto}
 @media(min-width:600px){body{max-width:600px}.green-card,.sec{margin-left:20px;margin-right:20px}.date-row{padding-left:20px;padding-right:20px}.timer-circle{width:180px;height:180px}.timer-val{font-size:32px}}
-
-/* ===== 平板自适应布局 (≥768px) — 左侧固定导航菜单 ===== */
-@media(min-width:768px){
-  :root{--mx:800px}
-  body{max-width:var(--mx);padding-bottom:0!important;display:flex;flex-direction:row;min-height:100vh}
-  /* 侧边栏 — 原 tabbar 改为左侧竖排菜单 */
-  .tabbar{position:fixed!important;top:0;left:50%;bottom:0;transform:translateX(calc(-50% - 290px));width:220px;max-width:220px!important;display:flex;flex-direction:column;justify-content:flex-start;padding:24px 0;background:var(--c);box-shadow:2px 0 12px rgba(0,0,0,.04);z-index:50;border-top:none;border-right:1px solid var(--b);gap:4px}
-  .tabbar button{flex:none;padding:14px 20px;font-size:14px;color:var(--t2);display:flex;flex-direction:row;align-items:center;gap:10px;cursor:pointer;border-radius:0 8px 8px 0;margin-right:12px;transition:background .2s;min-width:180px}
-  .tabbar button:hover{background:var(--g5)}
-  .tabbar button.active{color:var(--g);font-weight:700;background:var(--g5);border-right:3px solid var(--g)}
-  .tabbar button .ic{font-size:20px}
-  /* 侧边栏品牌区 */
-  .tabbar::before{content:'📚 YT考公';display:block;font-size:16px;font-weight:700;color:var(--tx);padding:0 20px 20px;margin-bottom:8px;border-bottom:1px solid var(--b);text-align:left}
-  /* 侧边栏底部 — 设置入口 */
-  .tabbar::after{content:'⚙ 设置';display:block;margin-top:auto;padding:14px 20px;font-size:13px;color:var(--t3);cursor:pointer;border-top:1px solid var(--b)}
-  /* 侧边栏底部设置点击 — 用 JS 代理（通过 body click 监听） */
-  /* 主内容区 — 单列居中 */
-  body>.view,#viewHome,#viewData,#viewTools{width:520px;margin-left:220px;flex:1;min-height:100vh}
-  #viewHome.active{display:flex;flex-direction:column;padding:20px 0}
-  #viewHome.active>.topbar{padding:8px 16px 4px}
-  #viewHome.active>.green-card{margin:0 16px 10px}
-  #viewHome.active>.timer-wrap{padding:12px 0 4px}
-  #viewHome.active>.sec{margin:0 16px 8px}
-  #viewHome.active>.footer{margin-top:auto}
-  /* 计时圆圈 */
-  .timer-circle-wrap{width:200px;height:200px}
-  .timer-circle{width:168px;height:168px}
-  .timer-val{font-size:32px}
-  .timer-ring{transform:scale(1.04)}
-  /* 复盘页/工具页 — 单列布局 */
-  .tools-wrap{padding:20px 16px}
-  .metrics{grid-template-columns:repeat(3,1fr)}
-  /* 设置面板 */
-  .panel{max-width:460px}
-  .cal-panel{max-width:460px}
-  .cd-panel{max-width:400px}
-  /* 学习列表历史区域 */
-  #historySection{max-height:400px;overflow-y:auto}
-}
 
 /* ===== 工具页 / 底部导航 ===== */
 body{padding-bottom:64px}
@@ -375,8 +327,8 @@ body{padding-bottom:64px}
         stroke-dasharray="527.79" stroke-dashoffset="527.79"/>
     </svg>
     <div class="timer-circle" id="timerCircle">
-      <div class="timer-label" id="timerLabel">今日已学</div>
       <div class="timer-val" id="timerVal">0<span>h</span> 00<span>m</span></div>
+      <div class="timer-label" id="timerLabel">今日目标</div>
       <div class="timer-enc" id="timerEnc">继续加油</div>
     </div>
   </div>
@@ -485,7 +437,7 @@ body{padding-bottom:64px}
       <button class="subject-btn" data-sub="提出对策" onclick="pickListenSubject(this)">提出对策</button>
       <button class="subject-btn" data-sub="应用文" onclick="pickListenSubject(this)">应用文</button>
       <button class="subject-btn" data-sub="大作文" onclick="pickListenSubject(this)">大作文</button>
-      <button class="subject-btn" data-sub="公文" onclick="pickListenSubject(this)">公文</button>
+      <button class="subject-btn" data-sub="面试模拟" onclick="pickListenSubject(this)">面试模拟</button>
     </div>
   </div>
 </div>
@@ -523,11 +475,10 @@ body{padding-bottom:64px}
     <div class="study-subtitle">申论</div>
     <div class="subject-grid">
       <button class="subject-btn" data-sub="归纳概括" onclick="pickPracticeSubject(this)">归纳概括</button>
-      <button class="subject-btn" data-sub="提出对策" onclick="pickPracticeSubject(this)">提出对策</button>
       <button class="subject-btn" data-sub="综合分析" onclick="pickPracticeSubject(this)">综合分析</button>
       <button class="subject-btn" data-sub="应用文" onclick="pickPracticeSubject(this)">应用文</button>
       <button class="subject-btn" data-sub="大作文" onclick="pickPracticeSubject(this)">大作文</button>
-      <button class="subject-btn" data-sub="公文" onclick="pickPracticeSubject(this)">公文</button>
+      <button class="subject-btn" data-sub="面试模拟" onclick="pickPracticeSubject(this)">面试模拟</button>
     </div>
     <div class="study-subtitle">📋 套卷刷题</div>
     <div class="exam-name-row">
@@ -644,7 +595,7 @@ body{padding-bottom:64px}
       <button class="subject-btn" data-sub="提出对策" onclick="pickAddSubject(this)">提出对策</button>
       <button class="subject-btn" data-sub="应用文" onclick="pickAddSubject(this)">应用文</button>
       <button class="subject-btn" data-sub="大作文" onclick="pickAddSubject(this)">大作文</button>
-      <button class="subject-btn" data-sub="公文" onclick="pickAddSubject(this)">公文</button>
+      <button class="subject-btn" data-sub="面试模拟" onclick="pickAddSubject(this)">面试模拟</button>
     </div>
     <div class="add-row">
       <div style="flex:1;padding-right:4px"><div class="study-subtitle">开始</div><input type="time" id="addStart" class="flat-input" style="padding:8px 6px;font-size:13px;width:100%"></div>
@@ -723,32 +674,12 @@ body{padding-bottom:64px}
     <div id="viewResult" style="display:none"></div>
     <div class="study-subtitle">💾 数据备份</div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">每天自动备份到云端和本地（保留 7 天）。上次备份：<span id="lastBackupTime" style="color:var(--g)">--</span></div>
-    <div class="timer-controls" style="margin-bottom:10px">
+    <div class="timer-controls" style="margin-bottom:14px">
       <button style="background:#E8F0E4;color:#7A9E7A;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer" onclick="exportData()">⬇ 导出</button>
       <button style="background:#E8F0E4;color:#7A9E7A;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer" onclick="document.getElementById('importFile').click()">⬆ 导入</button>
-      <button id="cloudRestoreBtn" style="background:#D4E8D4;color:#5A7E5A;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer" onclick="cloudRestore()">☁ 云端恢复</button>
     </div>
-    <div id="cloudRestoreMsg" style="display:none;font-size:12px;color:var(--g);margin-bottom:8px;padding:6px 10px;background:#E8F3E8;border-radius:8px"></div>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this)">
-    <div class="study-subtitle">🔐 账号同步</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">登录后学习数据自动云端同步，手机和电脑数据互通。</div>
-    <div id="authLoggedOut">
-      <div style="margin-bottom:6px"><input type="email" id="authEmail" class="flat-input" placeholder="请输入邮箱" style="font-size:13px;margin-bottom:6px"></div>
-      <div style="margin-bottom:6px"><input type="password" id="authPassword" class="flat-input" placeholder="请输入密码（至少6位）" style="font-size:13px;margin-bottom:8px"></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-start" style="flex:1" onclick="handleSignIn()">登录</button>
-        <button class="btn-done" style="flex:1" onclick="handleSignUp()">注册</button>
-      </div>
-    </div>
-    <div id="authLoggedIn" style="display:none;padding:10px;background:var(--g5);border-radius:var(--rs);font-size:13px;margin-bottom:8px">
-      <div style="margin-bottom:4px">✅ 已登录：<b id="authUserEmail">--</b></div>
-      <div style="font-size:11px;color:var(--t3);margin-bottom:6px">上次同步：<span id="lastSyncTime">--</span></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-resume" style="flex:1;font-size:12px;padding:6px 10px" id="authSyncBtn" onclick="manualSync()">🔄 手动同步</button>
-        <button class="btn-pause" style="flex:1;font-size:12px;padding:6px 10px" onclick="signOut()">退出登录</button>
-      </div>
-    </div>
-    <div class="study-subtitle" style="margin-top:12px">其他</div>
+    <div class="study-subtitle">其他</div>
     <button class="btn-pause" style="width:100%" onclick="clearData()">🗑 清空所有数据</button>
   </div>
 </div>
@@ -763,9 +694,8 @@ body{padding-bottom:64px}
 
 <div class="toast hidden" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const APP_VER='20260729_v4';
+const APP_VER='20260728_v35';
 // 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
 (function(){
   setInterval(()=>{
@@ -780,7 +710,7 @@ const APP_VER='20260729_v4';
 const GK='yt_gk_v6', DAILY=300;
 // 分享相关变量（必须在 save() 调用前声明）
 let _sbClient=null,_sbConfig=null,_myShareCode=null,_autoSyncTimer=null,_lastAutoSync=0,_lastViewCode='';
-const SUBJECTS=['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析','归纳概括','综合分析','提出对策','应用文','大作文','公文'];
+const SUBJECTS=['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析','归纳概括','综合分析','提出对策','应用文','大作文','面试模拟'];
 const IDIOM_CATS=['人物神态','事态发展','对象误用','褒贬颠倒'];
 const IDIOMS=[
   {"word": "栩栩如生", "pinyin": "xǔ xǔ rú shēng", "meaning": "形容艺术形象非常逼真，如同活物。", "similar": ["惟妙惟肖", "活灵活现"], "category": "人物神态", "freq": 5, "example": "这幅画里的鸟儿栩栩如生，仿佛下一秒就会飞走。"},
@@ -1139,19 +1069,8 @@ function defData(){
     lastDate:t};
 }
 let D=defData();
-try{const r=localStorage.getItem(GK);if(r){const parsed=JSON.parse(r);if(parsed&&typeof parsed==='object'){D=parsed;const t=gdk();if(D.lastDate!==t||!D.history){if(!D.history)D.history={};if(!D.exams)D.exams={};if(!D.weekly)D.weekly={};D.lastDate=t;ensureTools();save()}}}}catch(e){console.warn('数据加载失败，使用默认数据',e);/* 不覆盖 localStorage，保留原始数据以便手动恢复 */}
-function save(){D.lastDate=gdk();localStorage.setItem(GK,JSON.stringify(D));autoSyncShare();autoCloudBackup();autoDualSave();autoSyncUserData()}
-// 双重保险：同时存一份备份到独立 key，防止主数据意外丢失
-function autoDualSave(){
-  try{
-    const today=gdk();
-    const lastDual=localStorage.getItem('yt_dual_date');
-    if(lastDual!==today){
-      localStorage.setItem('yt_dual_backup',JSON.stringify(D));
-      localStorage.setItem('yt_dual_date',today);
-    }
-  }catch(e){}
-}
+try{const r=localStorage.getItem(GK);if(r){D=JSON.parse(r);const t=gdk();if(D.lastDate!==t){D.L={start:null,paused:false,subject:null,elapsed:0,note:''};D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};D.lastDate=t;save()}}}catch(e){save()}
+function save(){localStorage.setItem(GK,JSON.stringify(D));autoSyncShare();autoCloudBackup()}
 // 如果已开启分享，自动同步数据到云端（防抖，5秒内最多同步一次）
 function autoSyncShare(){
   if(!_myShareCode)return;
@@ -1167,13 +1086,12 @@ function autoSyncShare(){
   }catch(e){}
 }
 // ===== 自动云端备份 =====
-let _lastBackupDay=localStorage.getItem('yt_last_backup_day')||'';
+let _lastBackupDay='';
 function autoCloudBackup(){
   const today=gdk();
-  // 每天只备份一次（持久化到 localStorage）
+  // 每天只备份一次
   if(today===_lastBackupDay)return;
   _lastBackupDay=today;
-  localStorage.setItem('yt_last_backup_day',today);
   // 延迟5秒执行，避免频繁请求
   setTimeout(()=>doCloudBackup(),5000);
 }
@@ -1218,23 +1136,12 @@ function updateBackupTime(){
   const el=document.getElementById('lastBackupTime');
   if(el){const t=localStorage.getItem('yt_last_backup_time');el.textContent=t||'--'}
 }
-// 自动恢复：页面加载时从备份恢复（如果主数据丢失）
+// 自动恢复：页面加载时从最新本地备份恢复（如果主数据丢失）
 function autoRestoreBackup(){
   try{
     const mainData=localStorage.getItem(GK);
     if(mainData)return; // 主数据存在，不需要恢复
-    // 主数据丢失，优先从双重备份恢复
-    const dualRaw=localStorage.getItem('yt_dual_backup');
-    if(dualRaw){
-      const sd=JSON.parse(dualRaw);
-      if(sd&&sd.history&&Object.keys(sd.history).length>0){
-        D=Object.assign(defData(),sd);ensureIds();
-        save();
-        console.log('🔄 已从双重备份自动恢复');
-        return;
-      }
-    }
-    // 其次从每日本地备份恢复
+    // 主数据丢失，从最新本地备份恢复
     const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('yt_local_backup_'))keys.push(k)}
     if(!keys.length)return;
     keys.sort();const latest=keys[keys.length-1];
@@ -1274,8 +1181,6 @@ function fmtTime(ts){const d=new Date(ts);return d.getHours().toString().padStar
 function fmtClock(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60);return [h,m,sc].map(v=>v.toString().padStart(2,'0')).join(':')}
 function fmtDur(min){min=Math.round(min);if(min<1)return'<1min';const h=Math.floor(min/60),m=min%60;return h>0?(h+'h'+(m>0?m+'min':'')):(m+'min')}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-// JS 字符串安全转义：用于 onclick 等 HTML 属性中的 JS 字符串
-function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r')}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),2000)}
 
 // Stats
@@ -1294,62 +1199,9 @@ function updStats(){
   const pct=Math.min(100,dur/safeGoal*100);
   document.getElementById('ringFill').style.strokeDashoffset=527.79-(pct/100*527.79);
   const active=(D.L.start&&!D.L.paused)||(D.P.start&&!D.P.paused);
-  const hintEl=document.getElementById('timerHint');
-  hintEl.textContent=active?'正在计时中':'点击圆圈，选择学习模式';
-  if(active){
-    hintEl.style.cursor='pointer';
-    hintEl.style.textDecoration='underline';
-    hintEl.onclick=()=>{ if(D.L.start&&!D.L.paused)showListen(); else if(D.P.start&&!D.P.paused)showPractice(); };
-  }else{
-    hintEl.style.cursor='';
-    hintEl.style.textDecoration='';
-    hintEl.onclick=null;
-  }
+  document.getElementById('timerHint').textContent=active?'正在计时中':'点击圆圈，选择学习模式';
   document.getElementById('timerEnc').textContent=dur>=safeGoal?'今日目标已达成！':'继续加油';
   document.getElementById('studyCount').textContent='今日 '+allToday().length+' 段';
-  // 根据学习进度调整圆圈脉冲、颜色和鼓励语
-  const wrap=document.querySelector('.timer-circle-wrap');
-  const circle=document.getElementById('timerCircle');
-  const fill=document.getElementById('ringFill');
-  const enc=document.getElementById('timerEnc');
-  wrap.classList.remove('pulse-slow','pulse-mid','pulse-fast','goal-reached');
-  circle.style.animation='';
-  if(pct>=100){
-    wrap.classList.add('goal-reached');
-    wrap.classList.add('pulse-fast');
-    fill.style.stroke='var(--g)';
-    circle.style.background='var(--g5)';
-    document.getElementById('timerVal').style.color='var(--g)';
-    document.getElementById('timerLabel').style.color='var(--g)';
-    enc.textContent='太棒了！目标达成 🎉';
-    enc.style.color='var(--g)';
-    circle.style.animation='none';
-    circle.offsetHeight;
-    circle.style.animation='ringPulseGoal 1.5s ease-in-out 3';
-  }else if(pct>=60){
-    wrap.classList.add('pulse-mid');
-    fill.style.stroke='var(--o)';
-    circle.style.background='';
-    document.getElementById('timerVal').style.color='';
-    document.getElementById('timerLabel').style.color='';
-    enc.textContent='超过一半了，继续冲 💪';
-    enc.style.color='var(--o)';
-  }else if(pct>0){
-    wrap.classList.add('pulse-slow');
-    fill.style.stroke='var(--g3)';
-    circle.style.background='';
-    document.getElementById('timerVal').style.color='';
-    document.getElementById('timerLabel').style.color='';
-    enc.textContent='好的开始是成功的一半 ✨';
-    enc.style.color='var(--g3)';
-  }else{
-    fill.style.stroke='var(--g)';
-    circle.style.background='';
-    document.getElementById('timerVal').style.color='';
-    document.getElementById('timerLabel').style.color='';
-    enc.textContent='继续加油';
-    enc.style.color='';
-  }
 }
 
 function renderList(){
@@ -1372,7 +1224,7 @@ function renderRecHTML(r){
     extra='<span style="font-size:11px;color:var(--o);margin-left:4px">'+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%</span>';
   }
   const rid=r.id||'';
-  return '<div class="study-item" data-id="'+esc(rid)+'"><div class="swipe-actions"><button class="swipe-btn swipe-edit" onclick="editRec(\''+escJs(rid)+'\');closeSwipes()">编辑</button></div><div class="study-dot"></div><div class="study-info"><div class="study-name">'+esc(r.subject)+'</div><div style="font-size:11px;color:'+(r.type==='practice'?'var(--o)':'var(--g)')+';font-weight:500">['+tag+']'+extra+'</div></div><div class="study-right"><div class="study-time">'+ts+'</div><div class="study-dur">'+ds+'</div></div></div>';
+  return '<div class="study-item" data-id="'+rid+'"><div class="swipe-actions"><button class="swipe-btn swipe-edit" onclick="editRec(\''+rid+'\');closeSwipes()">编辑</button></div><div class="study-dot"></div><div class="study-info"><div class="study-name">'+esc(r.subject)+'</div><div style="font-size:11px;color:'+(r.type==='practice'?'var(--o)':'var(--g)')+';font-weight:500">['+tag+']'+extra+'</div></div><div class="study-right"><div class="study-time">'+ts+'</div><div class="study-dur">'+ds+'</div></div></div>';
 }
 
 let _showHistory=false;
@@ -1595,8 +1447,6 @@ function closeGoalSet(){document.getElementById('goalOverlay').classList.add('hi
 function highlightGoal2(){const g=D.dailyGoal||DAILY;document.querySelectorAll('#goalOverlay .mode-card').forEach(c=>{c.classList.toggle('selected',parseInt(c.dataset.g)===g)})}
 function exportData(){const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='YT考公学习备份_'+gdk()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast('✅ 备份已导出')}
 function importData(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||typeof d!=='object'||(!d.listenRecords&&!d.practiceRecords&&!d.history))throw 0;D=Object.assign(defData(),d);ensureIds();save();updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();toast('✅ 备份已导入')}catch(e){toast('⚠ 备份文件无效')}inp.value=''};rd.readAsText(f)}
-function cloudRestore(){const btn=document.getElementById('cloudRestoreBtn');const msg=document.getElementById('cloudRestoreMsg');btn.disabled=true;btn.textContent='⏳ 连接中...';msg.style.display='block';msg.textContent='正在连接云端备份...';fetch('https://qiii0714.github.io/yt-gongkao/restore_data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(d=>{if(!d||typeof d!=='object'||(!d.listenRecords&&!d.practiceRecords&&!d.history))throw new Error('数据无效');const hasExisting=D.history&&Object.keys(D.history).length>0;if(hasExisting){if(!confirm('你的设备上已有学习记录。\n\n云端备份（'+Object.keys(d.history||{}).length+'天记录）将覆盖当前数据。\n\n确定要恢复吗？')){btn.disabled=false;btn.textContent='☁ 云端恢复';msg.style.display='none';return}}D=Object.assign(defData(),d);ensureIds();save();updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();const days=Object.keys(D.history||{}).length;const listens=Object.values(D.listenRecords||{}).reduce((a,b)=>a+b.length,0);const practices=Object.values(D.practiceRecords||{}).reduce((a,b)=>a+b.length,0);msg.textContent='✅ 恢复成功！'+days+'天打卡、'+listens+'条听课、'+practices+'条刷题';msg.style.background='#E8F3E8';msg.style.color='#5A7E5A';btn.textContent='☁ 云端恢复';btn.disabled=false;toast('✅ 数据已恢复')}).catch(e=>{console.error(e);msg.textContent='⚠ 云端恢复失败，请检查网络或稍后再试';msg.style.background='#FFF0F0';msg.style.color='#C44';btn.disabled=false;btn.textContent='☁ 云端恢复';setTimeout(()=>{msg.style.display='none'},5000)})}
-
 function clearData(){if(typeof confirm==='function'&&!confirm('确定清空所有学习数据？此操作不可恢复！'))return;D=defData();save();updStats();renderList();renderWeekly();toast('已清空所有数据')}
 function forceRefresh(){
   // 1. 清除所有缓存（Service Worker + Cache API）
@@ -1642,177 +1492,6 @@ async function sbReq(method,path,body){
   return txt?JSON.parse(txt):null;
 }
 
-// ===== Supabase Auth 用户登录 =====
-let _sbAuthClient=null;
-function initSupabase(){
-  if(_sbAuthClient)return _sbAuthClient;
-  const cfg=getSbConfig();
-  if(!cfg)return null;
-  if(window.supabase&&window.supabase.createClient){
-    _sbAuthClient=window.supabase.createClient(cfg.url,cfg.key);
-  }
-  return _sbAuthClient;
-}
-
-async function signUp(email,password){
-  const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
-  const {data,error}=await sb.auth.signUp({email,password});
-  if(error){toast('注册失败: '+error.message);return}
-  if(data.user){toast('✅ 注册成功，已自动登录');updateAuthUI();pullFromCloud();}
-}
-
-async function signIn(email,password){
-  const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){toast('登录失败: '+error.message);return}
-  if(data.user){toast('✅ 登录成功');updateAuthUI();pullFromCloud();}
-}
-
-async function signOut(){
-  const sb=initSupabase();if(!sb)return;
-  await sb.auth.signOut();
-  toast('已退出登录');
-  updateAuthUI();
-}
-
-async function getSession(){
-  const sb=initSupabase();if(!sb)return null;
-  const {data}=await sb.auth.getSession();
-  return data.session;
-}
-
-async function getCurrentUser(){
-  const session=await getSession();
-  return session?session.user:null;
-}
-
-// ===== 云端数据同步 =====
-let _syncTimer=null,_lastSync=0;
-
-async function syncToCloud(){
-  const user=await getCurrentUser();
-  if(!user)return;
-  const sb=initSupabase();if(!sb)return;
-  const payload={
-    history:D.history||{},listenRecords:D.listenRecords||{},practiceRecords:D.practiceRecords||{},
-    exams:D.exams||{},weekly:D.weekly||{},streak:D.streak||0,dailyGoal:D.dailyGoal||300,
-    updatedAt:new Date().toISOString()
-  };
-  try{
-    // 使用 upsert：先查后插或更新
-    const {error}=await sb.from('user_data').upsert({
-      user_id:user.id,data:payload,updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
-    if(error)throw error;
-    localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());
-    updateSyncTime();
-    console.log('✅ 云端同步完成');
-  }catch(e){console.warn('云端同步失败:',e.message)}
-}
-
-async function pullFromCloud(){
-  const user=await getCurrentUser();
-  if(!user)return;
-  const sb=initSupabase();if(!sb)return;
-  try{
-    const {data,error}=await sb.from('user_data').select('data,updated_at').eq('user_id',user.id).single();
-    if(error||!data){console.log('云端无数据，跳过拉取');return}
-    const cloudData=data.data;
-    if(!cloudData||!cloudData.history)return;
-    // 合并策略：云端数据合并到本地
-    const localUpdated=getLocalUpdated();
-    const cloudUpdated=data.updated_at;
-    if(cloudUpdated&&localUpdated&&new Date(cloudUpdated)<=new Date(localUpdated)){
-      console.log('本地数据更新，跳过云端覆盖');
-      return;
-    }
-    // 合并数据
-    D=Object.assign(defData(),cloudData);
-    ensureIds();save();
-    updStats();renderList();renderWeekly();
-    if(typeof renderCal==='function')renderCal();
-    localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());
-    updateSyncTime();
-    toast('✅ 已从云端同步数据');
-  }catch(e){console.warn('云端拉取失败:',e.message)}
-}
-
-function getLocalUpdated(){
-  try{
-    const raw=localStorage.getItem(GK);
-    if(!raw)return null;
-    const d=JSON.parse(raw);
-    return d.updatedAt||null;
-  }catch(e){return null}
-}
-
-function autoSyncUserData(){
-  const now=Date.now();
-  if(now-_lastSync<5000){clearTimeout(_syncTimer);_syncTimer=setTimeout(autoSyncUserData,5000);return}
-  _lastSync=now;
-  syncToCloud().catch(()=>{});
-}
-
-function updateSyncTime(){
-  const el=document.getElementById('lastSyncTime');
-  if(el){const t=localStorage.getItem('yt_last_sync_time');el.textContent=t||'从未同步'}
-}
-
-function updateAuthUI(){
-  const loggedOut=document.getElementById('authLoggedOut');
-  const loggedIn=document.getElementById('authLoggedIn');
-  const userEmail=document.getElementById('authUserEmail');
-  const syncBtn=document.getElementById('authSyncBtn');
-  if(!loggedOut||!loggedIn)return;
-  getCurrentUser().then(user=>{
-    if(user){
-      loggedOut.style.display='none';
-      loggedIn.style.display='block';
-      if(userEmail)userEmail.textContent=user.email;
-      if(syncBtn)syncBtn.style.display='';
-    }else{
-      loggedOut.style.display='block';
-      loggedIn.style.display='none';
-      if(syncBtn)syncBtn.style.display='none';
-    }
-    updateSyncTime();
-  });
-}
-
-async function manualSync(){
-  const user=await getCurrentUser();
-  if(!user){toast('请先登录');return}
-  toast('⏳ 正在同步...');
-  await syncToCloud();
-  toast('✅ 同步完成');
-}
-
-function handleSignIn(){
-  const email=document.getElementById('authEmail').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!email||!password){toast('请填写邮箱和密码');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signIn(email,password);
-}
-function handleSignUp(){
-  const email=document.getElementById('authEmail').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!email||!password){toast('请填写邮箱和密码');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signUp(email,password);
-}
-
-// ===== 初始化：检查登录状态并拉取云端数据 =====
-(async function initAuth(){
-  try{
-    const sb=initSupabase();
-    if(!sb)return;
-    const session=await getSession();
-    if(session){console.log('已登录:',session.user.email);pullFromCloud();}
-  }catch(e){}
-  setTimeout(updateAuthUI,500);
-})();
-
 async function testSbConnection(){
   try{
     const cfg=getSbConfig();
@@ -1845,7 +1524,6 @@ function showSet(){
   document.getElementById('customTitle').value=ct;
   loadMyShare();
   renderShareQuickHistory();
-  updateAuthUI();
 }
 
 function renderShareQuickHistory(){
@@ -2002,18 +1680,13 @@ function renderSharedData(sd,nickname){
   const todayRecsHtml=todayRecs.length?todayRecs.map(r=>{
     const dur=Math.round(Math.max(0,(r.end-r.start)/60000));
     const ds=fmtDur(dur);
-    const ts=fmtTime(r.start)+'-'+fmtTime(r.end);
-    const isListen=r.type==='听课'||r.type==='listen';
-    const tag=isListen?'📖 听课':'✏️ 刷题';
-    const tagColor=isListen?'var(--g)':'var(--o)';
+    const tag=r.type==='practice'?'刷题':'听课';
     let extra='';
-    if(!isListen&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
-    if(isListen&&r.note&&r.note.trim())extra=' · '+escHtml(r.note);
-    return '<div style="padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
-      +'<div style="display:flex;justify-content:space-between">'
-      +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:'+tagColor+';font-weight:500">'+tag+extra+'</div></div>'
-      +'<div style="text-align:right"><div style="font-size:11px;color:var(--t3)">'+ts+'</div><div style="font-weight:600;color:var(--g)">'+ds+'</div></div>'
-      +'</div></div>';
+    if(r.type==='listen'&&r.note)extra=' · '+escHtml(r.note);
+    else if(r.type==='practice'&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
+    return '<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
+      +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:var(--t3)">'+tag+extra+'</div></div>'
+      +'<div style="text-align:right"><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
   }).join(''):'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">今天暂无记录</div>';
 
   // 历史记录（按日期分组，排除今天）
@@ -2033,18 +1706,13 @@ function renderSharedData(sd,nickname){
     dayRecs.forEach(r=>{
       const dur=Math.round(Math.max(0,(r.end-r.start)/60000));
       const ds=fmtDur(dur);
-      const ts=fmtTime(r.start)+'-'+fmtTime(r.end);
-      const isListen=r.type==='听课'||r.type==='listen';
-      const tag=isListen?'📖 听课':'✏️ 刷题';
-      const tagColor=isListen?'var(--g)':'var(--o)';
+      const tag=r.type==='practice'?'刷题':'听课';
       let extra='';
-      if(!isListen&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
-      if(isListen&&r.note&&r.note.trim())extra=' · '+escHtml(r.note);
-      historyHtml+='<div style="padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
-        +'<div style="display:flex;justify-content:space-between">'
-        +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:'+tagColor+';font-weight:500">'+tag+extra+'</div></div>'
-        +'<div style="text-align:right"><div style="font-size:11px;color:var(--t3)">'+ts+'</div><div style="font-weight:600;color:var(--g)">'+ds+'</div></div>'
-        +'</div></div>';
+      if(r.type==='listen'&&r.note)extra=' · '+escHtml(r.note);
+      else if(r.type==='practice'&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
+      historyHtml+='<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
+        +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:var(--t3)">'+tag+extra+'</div></div>'
+        +'<div style="text-align:right"><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
     });
   });
 
@@ -2062,18 +1730,20 @@ function renderSharedData(sd,nickname){
     </div>`;
   }).join(''):'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">暂无套卷记录</div>';
 
-  // 本周复盘柱状图（始终从原始记录实时计算，不依赖归档数据）
+  // 本周复盘柱状图
   const t2=new Date(),dw2=t2.getDay(),mo2=dw2===0?-6:1-dw2;
   const days=[];const wd=['一','二','三','四','五','六','日'];
   for(let i=0;i<7;i++){const d=new Date(t2);d.setDate(t2.getDate()+mo2+i);days.push(d);}
   const weekKey=gdk(days[0]);
-  // 直接从 listenRecords/practiceRecords/exams 实时计算每天数据
-  const weekData={days:days.map(d=>{
-    const dk=gdk(d),L=(sd.listenRecords||{})[dk]||[],P=(sd.practiceRecords||{})[dk]||[],E=(sd.exams||{})[dk]||[];
-    let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
-    const tq=P.reduce((s,r)=>s+(r.totalQ||0),0),cq=P.reduce((s,r)=>s+(r.correctQ||0),0);
-    return{dur:Math.round(dur),tq,acc:tq?Math.round(cq/tq*100):null,checked:dur>0};
-  })};
+  let weekData=sd.weekly&&sd.weekly[weekKey];
+  if(!weekData){
+    weekData={days:days.map(d=>{
+      const dk=gdk(d),L=(sd.listenRecords||{})[dk]||[],P=(sd.practiceRecords||{})[dk]||[],E=(sd.exams||{})[dk]||[];
+      let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
+      const tq=P.reduce((s,r)=>s+(r.totalQ||0),0),cq=P.reduce((s,r)=>s+(r.correctQ||0),0);
+      return{dur:Math.round(dur),tq,acc:tq?Math.round(cq/tq*100):null,checked:dur>0};
+    })};
+  }
   const maxH=8;
   const W=360,H=180,padL=8,padR=8,padT=12,padB=30;
   const barW=28,gap=(W-padL-padR-barW*7)/6;
@@ -2166,10 +1836,10 @@ function showListen(){
   document.getElementById('listenOverlay').classList.remove('hidden');
   updListenUI();updListenSessions();
   document.getElementById('listenNote').value=D.L.note||'';
-  if(D.L.start&&!D.L.paused)startListenInt();
 }
 function closeListen(){
   document.getElementById('listenOverlay').classList.add('hidden');
+  if(listenInt){clearInterval(listenInt);listenInt=null}
 }
 function pickListenSubject(btn){
   document.querySelectorAll('#listenOverlay .subject-btn').forEach(b=>b.classList.remove('selected'));
@@ -2217,19 +1887,11 @@ function resumeListen(){
 }
 function doneListen(){
   if(!D.L.start&&!D.L.paused)return;
-  let total,realStart;
-  const now=Date.now();
-  if(D.L.start){
-    total=(D.L.elapsed||0)+Math.max(0,now-D.L.start);
-    // 倒推真实开始时间 = 当前时间 - 总耗时
-    realStart=now-total;
-  }else{
-    // 暂停状态：无法精确知道开始时间，用当前时间 - elapsed 近似
-    total=D.L.elapsed||0;
-    realStart=now-total;
-  }
+  let total;
+  if(D.L.start)total=(D.L.elapsed||0)+Math.max(0,Date.now()-D.L.start);
+  else total=D.L.elapsed||0;
   const t=gdk();if(!D.listenRecords[t])D.listenRecords[t]=[];
-  D.listenRecords[t].push({id:genId(),subject:D.L.subject,type:'listen',start:realStart,end:now,note:D.L.note||''});
+  D.listenRecords[t].push({id:genId(),subject:D.L.subject,type:'listen',start:Date.now()-total,end:Date.now(),note:D.L.note||''});
   recomputeDay(t);
   D.L={start:null,paused:false,subject:null,elapsed:0,note:''};
   document.querySelectorAll('#listenOverlay .subject-btn').forEach(b=>b.classList.remove('selected'));
@@ -2237,7 +1899,7 @@ function doneListen(){
   if(listenInt){clearInterval(listenInt);listenInt=null}
   save();closeListen();updStats();renderList();renderWeekly();toast('✅ 听课完成！');
 }
-function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const el=D.L.start?((D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000)):((D.L.elapsed||0)/1000);const clock=document.getElementById('listenClock');if(clock)clock.textContent=fmtClock(el);updStats();renderList();renderWeekly()},1000)}
+function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly()},1000)}
 document.getElementById('listenNote').addEventListener('input',function(){D.L.note=this.value;save()});
 
 // Practice
@@ -2245,10 +1907,10 @@ let practiceInt=null,practiceSubject=null;
 function showPractice(){
   document.getElementById('practiceOverlay').classList.remove('hidden');
   updPracticeUI();updPracticeSessions();renderExamList();
-  if(D.P.start&&!D.P.paused)startPracticeInt();
 }
 function closePractice(){
   document.getElementById('practiceOverlay').classList.add('hidden');
+  if(practiceInt){clearInterval(practiceInt);practiceInt=null}
 }
 function pickPracticeSubject(btn){
   document.querySelectorAll('#practiceOverlay .subject-btn').forEach(b=>b.classList.remove('selected'));
@@ -2289,26 +1951,20 @@ function pausePractice(){
   D.P.elapsed=(D.P.elapsed||0)+Math.max(0,Date.now()-D.P.start);
   D.P.paused=true;D.P.start=null;save();
   if(practiceInt){clearInterval(practiceInt);practiceInt=null}
-  const clock=document.getElementById('practiceClock');if(clock)clock.textContent=fmtClock((D.P.elapsed||0)/1000);
+  document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
   updPracticeUI();updPracticeSessions();updStats();renderList();renderWeekly();toast('⏸ 已暂停');
 }
 function resumePractice(){
   if(!D.P.paused)return;
   D.P.start=Date.now();D.P.paused=false;save();
-  const clock=document.getElementById('practiceClock');if(clock)clock.textContent=fmtClock((D.P.elapsed||0)/1000);
+  document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
   updPracticeUI();startPracticeInt();toast('▶ 继续刷题');
 }
 function donePractice(){
   if(!D.P.start&&!D.P.paused)return;
-  let totalMs,realStart;
-  const now=Date.now();
-  if(D.P.start){
-    totalMs=(D.P.elapsed||0)+Math.max(0,now-D.P.start);
-    realStart=now-totalMs;
-  }else{
-    totalMs=D.P.elapsed||0;
-    realStart=now-totalMs;
-  }
+  let totalMs;
+  if(D.P.start)totalMs=(D.P.elapsed||0)+Math.max(0,Date.now()-D.P.start);
+  else totalMs=D.P.elapsed||0;
   const t=parseInt(document.getElementById('pTotal').value)||0,c=parseInt(document.getElementById('pCorrect').value)||0;
   const tk=gdk();
   const isExam=D.P.subject==='行测套卷'||D.P.subject==='申论套卷';
@@ -2323,7 +1979,7 @@ function donePractice(){
   }
   // 普通刷题记录
   D.practiceRecords[tk]=D.practiceRecords[tk]||[];
-  D.practiceRecords[tk].push({id:genId(),subject:D.P.subject,type:'practice',start:realStart,end:now,totalQ:t,correctQ:c});
+  D.practiceRecords[tk].push({id:genId(),subject:D.P.subject,type:'practice',start:Date.now()-totalMs,end:Date.now(),totalQ:t,correctQ:c});
   recomputeDay(tk);
   D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};
   document.querySelectorAll('#practiceOverlay .subject-btn').forEach(b=>b.classList.remove('selected'));
@@ -2341,7 +1997,7 @@ document.getElementById('pCorrect').addEventListener('input',calcP);
 let _examModData=null;
 const EXAM_MODS={
   '行测套卷':['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析'],
-  '申论套卷':['归纳概括','综合分析','应用文','大作文','公文']
+  '申论套卷':['归纳概括','综合分析','应用文','大作文','面试模拟']
 };
 function openExamMod(subject,name,totalMs,totalQ,correctQ,tk){
   _examModData={subject,name,totalMs,totalQ,correctQ,tk};
@@ -2399,10 +2055,13 @@ function saveExamMods(){
   const sumTotal=modules.reduce((s,m)=>s+(m.total||0),0);
   const finalScore=sumScore||correctQ;
   const finalTotal=sumTotal||(totalQ||100);
-  // 保存套卷（仅存 exams，不重复存 practiceRecords 避免时长双重计入）
+  // 保存套卷
   if(!D.exams)D.exams={};if(!D.exams[tk])D.exams[tk]=[];
   const durMin=Math.round(totalMs/60000);
   D.exams[tk].push({id:genId(),name,score:finalScore,total:finalTotal,min:durMin||1,modules,ts:Date.now()});
+  // 同时生成普通刷题记录
+  D.practiceRecords[tk]=D.practiceRecords[tk]||[];
+  D.practiceRecords[tk].push({id:genId(),subject,name,type:'practice',start:Date.now()-totalMs,end:Date.now(),totalQ:finalTotal,correctQ:finalScore});
   recomputeDay(tk);
   // 重置状态
   D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};
@@ -2422,7 +2081,6 @@ function pickExamName(){
   }
 }
 function deleteExam(dk,id){
-  if(!D.exams||!D.exams[dk])return;
   D.exams[dk]=D.exams[dk].filter(e=>e.id!==id);
   if(!D.exams[dk].length)delete D.exams[dk];
   recomputeDay(dk);
@@ -2719,50 +2377,21 @@ function checkCtx(){
 
 function moduleOf(sub){const m={'政治理论':'政治','常识判断':'常识','言语理解':'言语','判断推理':'判断','数量关系':'数量','资料分析':'资料'};return m[sub]||'申论';}
 function renderMetrics(){
-  // 根据当前选择的周计算
-  const today=new Date();const todayDk=gdk();
-  const monday=getMonday(today,_reviewOffset);
-  const days=[];for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);days.push(d);}
-  const isCurrentWeek=_reviewOffset===0;
-  let totalMin=0,maxDayMin=0,checkedDays=0;
-  days.forEach(d=>{
-    const dk=gdk(d);
-    const L=D.listenRecords[dk]||[],P=D.practiceRecords[dk]||[],E=D.exams&&D.exams[dk]?D.exams[dk]:[];
-    let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
-    // 当前周且是今天：加上正在运行的计时器
-    if(isCurrentWeek&&dk===todayDk){
-      if(D.L.start&&!D.L.paused)dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
-      else if(D.L.paused)dur+=(D.L.elapsed||0)/60000;
-      if(D.P.start&&!D.P.paused)dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
-      else if(D.P.paused)dur+=(D.P.elapsed||0)/60000;
-    }
-    dur=Math.round(dur);
-    totalMin+=dur;
-    if(dur>maxDayMin)maxDayMin=dur;
-    if(dur>0)checkedDays++;
-  });
-  const totalH=(totalMin/60).toFixed(1);
-  const avgH=checkedDays>0?(totalMin/checkedDays/60).toFixed(1):'0.0';
-  const maxH=(maxDayMin/60).toFixed(1);
+  let totalMin=0;Object.values(D.history||{}).forEach(h=>{if(h&&h.duration)totalMin+=h.duration});
+  let c=0,t=0;Object.values(D.practiceRecords||{}).forEach(arr=>arr.forEach(r=>{t+=r.totalQ||0;c+=r.correctQ||0}));
+  const acc=t?Math.round(c/t*100):0;
   document.getElementById('metrics').innerHTML=''
-    +'<div class="metric"><div class="metric-v">'+totalH+'<span style="font-size:14px;color:var(--t3);font-weight:400">h</span></div><div class="metric-l">总时长（小时）</div></div>'
-    +'<div class="metric"><div class="metric-v">'+avgH+'<span style="font-size:14px;color:var(--t3);font-weight:400">h</span></div><div class="metric-l">日均（小时）</div></div>'
-    +'<div class="metric"><div class="metric-v">'+maxH+'<span style="font-size:14px;color:var(--t3);font-weight:400">h</span></div><div class="metric-l">最长（小时）</div></div>';
+    +'<div class="metric"><div class="metric-v">'+fmtDur(totalMin)+'</div><div class="metric-l">总学习时长</div></div>'
+    +'<div class="metric"><div class="metric-v">'+acc+'%</div><div class="metric-l">平均正确率</div></div>'
+    +'<div class="metric"><div class="metric-v">'+D.streak+'</div><div class="metric-l">连续打卡</div></div>';
 }
 // ===== 近30天学习趋势折线图 =====
 function renderTrend(){
-  const days=[];const today=new Date();const todayDk=gdk();
+  const days=[];const today=new Date();
   for(let i=29;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);days.push(d);}
   const data=days.map(d=>{
     const dk=gdk(d),L=D.listenRecords[dk]||[],P=D.practiceRecords[dk]||[],E=D.exams&&D.exams[dk]?D.exams[dk]:[];
-    let dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
-    // 今天的数据加上实时计时器
-    if(dk===todayDk){
-      if(D.L.start&&!D.L.paused)dur+=(D.L.elapsed||0)/60000+Math.max(0,(Date.now()-D.L.start)/60000);
-      else if(D.L.paused)dur+=(D.L.elapsed||0)/60000;
-      if(D.P.start&&!D.P.paused)dur+=(D.P.elapsed||0)/60000+Math.max(0,(Date.now()-D.P.start)/60000);
-      else if(D.P.paused)dur+=(D.P.elapsed||0)/60000;
-    }
+    const dur=[...L,...P].reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0)+E.reduce((s,e)=>s+(e.min||0),0);
     const tq=P.reduce((s,r)=>s+(r.totalQ||0),0);
     return {dk,d,dur:Math.round(dur),tq,durH:Math.round(dur/6)/10}; // durH 单位为小时
   });
@@ -2850,7 +2479,7 @@ function getMonday(today,offset){
   d.setDate(d.getDate()-(dow===0?6:dow-1));
   return d;
 }
-function shiftWeek(dir){_reviewOffset+=dir;renderReview();renderMetrics();renderTrend();}
+function shiftWeek(dir){_reviewOffset+=dir;renderReview();}
 
 // ===== 时政素材库 =====
 const POLITICS_MATERIALS=[
@@ -3053,11 +2682,11 @@ function renderReview(){
     const acc=tq?Math.round(cq/tq*100):null;
     const subjs=new Set();L.forEach(r=>subjs.add(r.subject));P.forEach(r=>subjs.add(r.subject));
     const examN=E.length;
-    return {dk,d,isT,dur,tq,cq,acc,subjN:subjs.size,examN,checked:dur>0};
+    return {dk,d,isT,dur,tq,acc,subjN:subjs.size,examN,checked:dur>0};
   });
   const weekDur=data.reduce((s,d)=>s+d.dur,0);
   const weekTQ=data.reduce((s,d)=>s+d.tq,0);
-  const weekCQ=data.reduce((s,d)=>s+(d.cq||0),0);
+  const weekCQ=data.reduce((s,d)=>s+d.cq||0,0);
   const weekAcc=weekTQ?Math.round(weekCQ/weekTQ*100):null;
   const checkedDays=data.filter(d=>d.checked).length;
   const maxDur=Math.max(...data.map(d=>d.dur),1);
@@ -3112,35 +2741,21 @@ function init(){
   const n=new Date(),mo=n.getMonth()+1,dy=n.getDate(),wd=['周日','周一','周二','周三','周四','周五','周六'];
   document.getElementById('dateRow').textContent=mo+'/'+dy+' '+wd[n.getDay()];
   updStats();renderList();renderWeekly();
-  // 恢复计时状态并立即刷新 UI
-  let resumed=false;
-  if(D.L.start&&!D.L.paused){listenSubject=D.L.subject;document.querySelectorAll('#listenOverlay .subject-btn').forEach(b=>{if(b.dataset.sub===listenSubject)b.classList.add('selected')});const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);const clock=document.getElementById('listenClock');if(clock)clock.textContent=fmtClock(el);startListenInt();resumed=true}
-  if(D.P.start&&!D.P.paused){practiceSubject=D.P.subject;document.querySelectorAll('#practiceOverlay .subject-btn').forEach(b=>{if(b.dataset.sub===practiceSubject)b.classList.add('selected')});const el=(D.P.elapsed||0)/1000+Math.floor((Date.now()-D.P.start)/1000);const clock=document.getElementById('practiceClock');if(clock)clock.textContent=fmtClock(el);startPracticeInt();resumed=true}
-  if(resumed){updStats();renderList();renderWeekly()}
-  // 定时器：刷新UI + 自动保存（每10秒，确保计时状态及时持久化）
-  setInterval(()=>{updStats();renderList();renderWeekly();save();},10000);
+  updStats();renderList();renderWeekly();
+  if(D.L.start&&!D.L.paused){listenSubject=D.L.subject;document.querySelectorAll('#listenOverlay .subject-btn').forEach(b=>{if(b.dataset.sub===listenSubject)b.classList.add('selected')});const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);document.getElementById('listenClock').textContent=fmtClock(el);startListenInt()}
+  if(D.P.start&&!D.P.paused){practiceSubject=D.P.subject;document.querySelectorAll('#practiceOverlay .subject-btn').forEach(b=>{if(b.dataset.sub===practiceSubject)b.classList.add('selected')});const el=(D.P.elapsed||0)/1000+Math.floor((Date.now()-D.P.start)/1000);document.getElementById('practiceClock').textContent=fmtClock(el);startPracticeInt()}
+  // 定时器：刷新UI + 自动保存
+  setInterval(()=>{updStats();renderList();renderWeekly();save();},30000);
 }
 init();
 
 // ===== 自动保存 =====
-// 页面关闭/隐藏前强制保存（多个事件确保可靠）
+// 页面关闭前强制保存
 window.addEventListener('beforeunload',()=>{save()});
-window.addEventListener('pagehide',()=>{save()});
-window.addEventListener('visibilitychange',()=>{
-  if(document.hidden){save();/* 隐藏时立即保存 */}
-  else{
-    // 恢复可见时：重新计算进行中的计时并刷新UI
-    if(D.L.start&&!D.L.paused){
-      const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);
-      const clock=document.getElementById('listenClock');if(clock)clock.textContent=fmtClock(el);
-    }
-    if(D.P.start&&!D.P.paused){
-      const el=(D.P.elapsed||0)/1000+Math.floor((Date.now()-D.P.start)/1000);
-      const clock=document.getElementById('practiceClock');if(clock)clock.textContent=fmtClock(el);
-    }
-    updStats();renderList();renderWeekly();
-  }
-});
+// 页面恢复可见时拉取云端数据
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){/* 页面恢复时刷新 */updStats();renderList();renderWeekly();}});
+// 听课备注实时保存
+document.getElementById('listenNote').addEventListener('input',()=>{D.L.note=document.getElementById('listenNote').value;save()});
 // 套卷名称实时保存
 document.getElementById('examNameInput').addEventListener('input',()=>{localStorage.setItem('exam_name_draft',document.getElementById('examNameInput').value)});
 // 恢复套卷名称草稿
@@ -3152,14 +2767,9 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();pwaDeferred
 function installPWA(){if(pwaDeferred){pwaDeferred.prompt();pwaDeferred.userChoice.then(()=>{pwaDeferred=null;document.getElementById('pwaBanner').classList.add('hidden');localStorage.setItem('pwa_banner_closed','1')})}else{toast('请通过浏览器菜单 → 添加到主屏幕')}}
 
 // PWA 注册 — 检测新版本自动刷新
-// 平板侧边栏：点击 tabbar ::after（设置区域）打开设置
-document.querySelector('.tabbar').addEventListener('click',function(e){
-  if(e.target===this&&e.offsetY>this.offsetHeight-60&&window.innerWidth>=768){showSet()}
-});
-
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=20260729_v4').then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=20260728_v2').then(reg=>{
       // 监听 SW 发来的更新通知
       navigator.serviceWorker.addEventListener('message',e=>{
         if(e.data&&e.data.action==='sw_updated'){

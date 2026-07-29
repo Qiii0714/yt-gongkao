@@ -1,0 +1,14 @@
+{
+  "name": "YT考公学习打卡",
+  "short_name": "考公打卡",
+  "description": "公务员考试学习打卡计时工具，支持听课计时、刷题记录、学习复盘",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#7A9E7A",
+  "orientation": "portrait",
+  "icons": [
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  ]
+}
