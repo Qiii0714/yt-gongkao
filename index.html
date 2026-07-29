@@ -701,9 +701,9 @@ body{padding-bottom:64px}
       <button class="btn-done" style="padding:10px 14px;white-space:nowrap" onclick="saveCustomTitle()">保存</button>
     </div>
     <div class="study-subtitle">🔐 账号同步</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">登录后学习数据自动云端同步，手机和电脑数据互通。</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">设置账号和密码，手机电脑登录同一账号即可同步数据。</div>
     <div id="authLoggedOut">
-      <div style="margin-bottom:6px"><input type="email" id="authEmail" class="flat-input" placeholder="请输入邮箱" style="font-size:13px;margin-bottom:6px"></div>
+      <div style="margin-bottom:6px"><input type="text" id="authAccount" class="flat-input" placeholder="请输入账号（字母或数字）" style="font-size:13px;margin-bottom:6px"></div>
       <div style="margin-bottom:6px"><input type="password" id="authPassword" class="flat-input" placeholder="请输入密码（至少6位）" style="font-size:13px;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
         <button class="btn-start" style="flex:1" onclick="handleSignIn()">登录</button>
@@ -711,7 +711,7 @@ body{padding-bottom:64px}
       </div>
     </div>
     <div id="authLoggedIn" style="display:none;padding:10px;background:var(--g5);border-radius:var(--rs);font-size:13px;margin-bottom:8px">
-      <div style="margin-bottom:4px">✅ 已登录：<b id="authUserEmail">--</b></div>
+      <div style="margin-bottom:4px">✅ 已登录：<b id="authUserAccount">--</b></div>
       <div style="font-size:11px;color:var(--t3);margin-bottom:6px">上次同步：<span id="lastSyncTime">--</span></div>
       <div style="display:flex;gap:6px">
         <button class="btn-resume" style="flex:1;font-size:12px;padding:6px 10px" id="authSyncBtn" onclick="manualSync()">🔄 手动同步</button>
@@ -1662,22 +1662,29 @@ function initSupabase(){
   return _sbAuthClient;
 }
 
-async function signUp(email,password){
+// 账号转虚拟邮箱：Supabase Auth 要求邮箱格式，用 @yt.user 后缀
+function acct2email(account){return account+'@yt.user'}
+function email2acct(email){return (email||'').replace('@yt.user','')}
+
+async function signUp(account,password){
   const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
+  const email=acct2email(account);
   const {data,error}=await sb.auth.signUp({email,password});
   if(error){toast('注册失败: '+error.message);return}
-  if(data.user){toast('✅ 注册成功，已自动登录');updateAuthUI();pullFromCloud();}
+  if(data.user){localStorage.setItem('yt_account',account);toast('✅ 注册成功，已自动登录');updateAuthUI();pullFromCloud();}
 }
 
-async function signIn(email,password){
+async function signIn(account,password){
   const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
+  const email=acct2email(account);
   const {data,error}=await sb.auth.signInWithPassword({email,password});
   if(error){toast('登录失败: '+error.message);return}
-  if(data.user){toast('✅ 登录成功');updateAuthUI();pullFromCloud();}
+  if(data.user){localStorage.setItem('yt_account',account);toast('✅ 登录成功');updateAuthUI();pullFromCloud();}
 }
 
 async function signOut(){
   const sb=initSupabase();if(!sb)return;
+  localStorage.removeItem('yt_account');
   await sb.auth.signOut();
   toast('已退出登录');
   updateAuthUI();
@@ -1769,14 +1776,15 @@ function updateSyncTime(){
 function updateAuthUI(){
   const loggedOut=document.getElementById('authLoggedOut');
   const loggedIn=document.getElementById('authLoggedIn');
-  const userEmail=document.getElementById('authUserEmail');
+  const userAcct=document.getElementById('authUserAccount');
   const syncBtn=document.getElementById('authSyncBtn');
   if(!loggedOut||!loggedIn)return;
   getCurrentUser().then(user=>{
     if(user){
       loggedOut.style.display='none';
       loggedIn.style.display='block';
-      if(userEmail)userEmail.textContent=user.email;
+      const acct=email2acct(user.email)||localStorage.getItem('yt_account')||'--';
+      if(userAcct)userAcct.textContent=acct;
       if(syncBtn)syncBtn.style.display='';
     }else{
       loggedOut.style.display='block';
@@ -1796,18 +1804,20 @@ async function manualSync(){
 }
 
 function handleSignIn(){
-  const email=document.getElementById('authEmail').value.trim();
+  const account=document.getElementById('authAccount').value.trim();
   const password=document.getElementById('authPassword').value.trim();
-  if(!email||!password){toast('请填写邮箱和密码');return}
+  if(!account||!password){toast('请填写账号和密码');return}
+  if(account.length<3){toast('账号至少3位');return}
   if(password.length<6){toast('密码至少6位');return}
-  signIn(email,password);
+  signIn(account,password);
 }
 function handleSignUp(){
-  const email=document.getElementById('authEmail').value.trim();
+  const account=document.getElementById('authAccount').value.trim();
   const password=document.getElementById('authPassword').value.trim();
-  if(!email||!password){toast('请填写邮箱和密码');return}
+  if(!account||!password){toast('请填写账号和密码');return}
+  if(account.length<3){toast('账号至少3位');return}
   if(password.length<6){toast('密码至少6位');return}
-  signUp(email,password);
+  signUp(account,password);
 }
 
 // ===== 初始化：检查登录状态并拉取云端数据 =====
@@ -1816,7 +1826,7 @@ function handleSignUp(){
     const sb=initSupabase();
     if(!sb)return;
     const session=await getSession();
-    if(session){console.log('已登录:',session.user.email);pullFromCloud();}
+    if(session){console.log('已登录:',email2acct(session.user.email));pullFromCloud();}
   }catch(e){}
   setTimeout(updateAuthUI,500);
 })();
