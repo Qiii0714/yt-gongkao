@@ -507,7 +507,7 @@ body{padding-bottom:64px}
       <div class="timer-enc" id="timerEnc">继续加油</div>
     </div>
   </div>
-  <div class="timer-hint"><span class="arrow">➜</span><span id="timerHint">点击圆圈，选择学习模式</span></div>
+  <div class="timer-hint" id="timerHintWrap" onclick="timerHintClick()" style="cursor:pointer"><span class="arrow">➜</span><span id="timerHint">点击圆圈，选择学习模式</span></div>
 </div>
 
 <div class="sec">
@@ -1450,6 +1450,8 @@ function updStats(){
   document.getElementById('ringFill').style.strokeDashoffset=527.79-(pct/100*527.79);
   const active=(D.L.start&&!D.L.paused)||(D.P.start&&!D.P.paused);
   document.getElementById('timerHint').textContent=active?'正在计时中':'点击圆圈，选择学习模式';
+  document.getElementById('timerHint').style.textDecoration=active?'underline':'none';
+  document.getElementById('timerHint').style.color=active?'var(--g)':'var(--t3)';
   document.getElementById('timerEnc').textContent=dur>=safeGoal?'今日目标已达成！':'继续加油';
   document.getElementById('studyCount').textContent='今日 '+allToday().length+' 段';
 }
@@ -2284,6 +2286,15 @@ async function refreshViewShare(){
 
 // Mode Select
 function showModeSelect(){document.getElementById('modeOverlay').classList.remove('hidden')}
+function timerHintClick(){
+  const active=(D.L.start&&!D.L.paused)||(D.P.start&&!D.P.paused);
+  if(active){
+    if(D.L.start&&!D.L.paused)showListen();
+    else if(D.P.start&&!D.P.paused)showPractice();
+  }else{
+    showModeSelect();
+  }
+}
 function closeMode(){document.getElementById('modeOverlay').classList.add('hidden')}
 function enterMode(mode){
   closeMode();
