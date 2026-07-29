@@ -707,7 +707,7 @@ body{padding-bottom:64px}
       <div style="margin-bottom:6px"><input type="password" id="authPassword" class="flat-input" placeholder="请输入密码（至少6位）" style="font-size:13px;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
         <button class="btn-start" style="flex:1" onclick="handleSignIn()">登录</button>
-        <button class="btn-done" style="flex:1" onclick="handleSignUp()">注册</button>
+        <button class="btn-done" style="flex:1" onclick="handleSignUp()">注册/登录</button>
       </div>
     </div>
     <div id="authLoggedIn" style="display:none;padding:10px;background:var(--g5);border-radius:var(--rs);font-size:13px;margin-bottom:8px">
@@ -1671,7 +1671,19 @@ async function signUp(account,password){
   const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
   const email=acct2email(account);
   const {data,error}=await sb.auth.signUp({email,password});
-  if(error){toast('注册失败: '+error.message);return}
+  if(error){
+    // 如果账号已存在，自动尝试登录
+    if(error.message.includes('already registered')||error.message.includes('already been registered')){
+      toast('账号已存在，正在尝试登录...');
+      signIn(account,password);
+      return;
+    }
+    // 如果是 rate limit，提示用户稍后重试
+    if(error.message.includes('security')||error.message.includes('seconds')||error.message.includes('rate limit')){
+      toast('操作太频繁，请稍后再试');return;
+    }
+    toast('注册失败: '+error.message);return
+  }
   if(data.user){localStorage.setItem('yt_account',account);toast('✅ 注册成功，已自动登录');updateAuthUI();pullFromCloud();}
 }
 
