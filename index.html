@@ -655,25 +655,7 @@ body{padding-bottom:64px}
       <input type="text" id="customTitle" class="flat-input" placeholder="YT考公学习打卡" maxlength="20" style="font-size:13px;flex:1">
       <button class="btn-done" style="padding:10px 14px;white-space:nowrap" onclick="saveCustomTitle()">保存</button>
     </div>
-    <div class="study-subtitle">🔐 账号同步</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">设置账号和密码，手机电脑登录同一账号即可同步数据。</div>
-    <div id="authLoggedOut">
-      <div style="margin-bottom:6px"><input type="text" id="authAccount" class="flat-input" placeholder="请输入账号（字母或数字）" style="font-size:13px;margin-bottom:6px"></div>
-      <div style="margin-bottom:6px"><input type="password" id="authPassword" class="flat-input" placeholder="请输入密码（至少6位）" style="font-size:13px;margin-bottom:8px"></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-start" style="flex:1" onclick="handleSignIn()">登录</button>
-        <button class="btn-done" style="flex:1" onclick="handleSignUp()">注册</button>
-      </div>
-    </div>
-    <div id="authLoggedIn" style="display:none;padding:10px;background:var(--g5);border-radius:var(--rs);font-size:13px;margin-bottom:8px">
-      <div style="margin-bottom:4px">✅ 已登录：<b id="authUserAccount">--</b></div>
-      <div style="font-size:11px;color:var(--t3);margin-bottom:6px">上次同步：<span id="lastSyncTime">--</span></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-resume" style="flex:1;font-size:12px;padding:6px 10px" id="authSyncBtn" onclick="manualSync()">🔄 手动同步</button>
-        <button class="btn-pause" style="flex:1;font-size:12px;padding:6px 10px" onclick="signOut()">退出登录</button>
-      </div>
-    </div>
-    <div class="study-subtitle" style="margin-top:12px">📤 分享学习数据</div>
+    <div class="study-subtitle">📤 分享学习数据</div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">生成分享链接发给朋友，对方就能查看你的学习进度。学习后数据自动同步，无需手动更新。</div>
     <div style="margin-bottom:6px">
       <div style="font-size:12px;color:var(--t3);margin-bottom:4px">你的昵称（选填）</div>
@@ -717,20 +699,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260728_v35';
-// 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
-(function(){
-  setInterval(()=>{
-    fetch('./version.txt?t='+Date.now()).then(r=>r.text()).then(v=>{
-      if(v.trim()!==APP_VER&&!sessionStorage.getItem('yt_auto_reload')){
-        sessionStorage.setItem('yt_auto_reload','1');
-        location.reload(true);
-      }
-    }).catch(()=>{});
-  },300000);
-})();
 const APP_VER='20260729_v39';
-// 版本检测：发现新版本后清除缓存并强制刷新
 (function(){
   const prev=localStorage.getItem('yt_app_ver');
   if(prev&&prev!==APP_VER){
@@ -741,7 +710,7 @@ const APP_VER='20260729_v39';
 })();
 const GK='yt_gk_v6', DAILY=300;
 // 分享相关变量（必须在 save() 调用前声明）
-let _sbClient=null,_sbConfig=null,_myShareCode=null,_autoSyncTimer=null,_lastAutoSync=0,_lastViewCode='',_syncTimer=null,_lastSync=0;
+let _sbClient=null,_sbConfig=null,_myShareCode=null,_autoSyncTimer=null,_lastAutoSync=0,_lastViewCode='';
 const SUBJECTS=['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析','归纳概括','综合分析','提出对策','应用文','大作文','面试模拟'];
 const IDIOM_CATS=['人物神态','事态发展','对象误用','褒贬颠倒'];
 const IDIOMS=[
@@ -1102,23 +1071,15 @@ function defData(){
 }
 let D=defData();
 restoreLiveTimer();try{const r=localStorage.getItem(GK);if(r){D=JSON.parse(r);const t=gdk();if(D.lastDate!==t){D.L={start:null,paused:false,subject:null,elapsed:0,note:''};D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};D.lastDate=t;save()}}}catch(e){save()}
-function save(){localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData()}
-// 计时持久化：将进行中的计时写入独立 key，防止 D 被意外重置
+function save(){localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup()}
 function persistLiveTimer(){
-  const o={};
-  if(D.L&&(D.L.start||D.L.paused))o.L=D.L;
-  if(D.P&&(D.P.start||D.P.paused))o.P=D.P;
+  const o={};if(D.L&&(D.L.start||D.L.paused))o.L=D.L;if(D.P&&(D.P.start||D.P.paused))o.P=D.P;
   if(Object.keys(o).length)localStorage.setItem('yt_live_timer',JSON.stringify(o));
 }
-// 恢复进行中的计时
 function restoreLiveTimer(){
-  try{
-    const raw=localStorage.getItem('yt_live_timer');if(!raw)return;
-    const s=JSON.parse(raw);
-    const ok=o=>o&&((o.start&&Date.now()-o.start<7*864e5)||o.paused===true);
-    if(ok(s.L))D.L=s.L;
-    if(ok(s.P))D.P=s.P;
-  }catch(e){}
+  try{const raw=localStorage.getItem('yt_live_timer');if(!raw)return;const s=JSON.parse(raw);
+  const ok=o=>o&&((o.start&&Date.now()-o.start<7*864e5)||o.paused===true);
+  if(ok(s.L))D.L=s.L;if(ok(s.P))D.P=s.P}catch(e){}
 }
 // 如果已开启分享，自动同步数据到云端（防抖，5秒内最多同步一次）
 function autoSyncShare(){
@@ -1591,147 +1552,6 @@ function saveViewHistory(code){
   renderShareQuickHistory();
 }
 
-// ===== 用户登录/数据同步（自建 Token 机制） =====
-async function sha256(str){
-  const encoder=new TextEncoder();
-  const data=encoder.encode(str);
-  const hash=await crypto.subtle.digest('SHA-256',data);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-function makeToken(account,password){return account+':'+password}
-function getSavedAccount(){return localStorage.getItem('yt_account')||''}
-function getSavedPassword(){return localStorage.getItem('yt_pass')||''}
-function isLoggedIn(){return !!getSavedAccount()&&!!getSavedPassword()}
-
-async function signUp(account,password){
-  if(!account||!password){toast('请输入账号和密码');return}
-  if(account.length<2){toast('账号至少2位');return}
-  if(password.length<6){toast('密码至少6位');return}
-  const cfg=getSbConfig();if(!cfg){toast('连接失败');return}
-  const token=await sha256(makeToken(account,password));
-  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
-  try{
-    const check=await fetch(cfg.url+'/rest/v1/shares?select=code&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
-    if(check.ok){const rows=await check.json();if(rows&&rows.length>0){toast('账号已存在，请直接登录');return}}
-    const r=await fetch(cfg.url+'/rest/v1/shares',{
-      method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Prefer':'return=representation'},
-      body:JSON.stringify({code,nickname:account,active:true,data:{_token:token,history:{},listenRecords:{},practiceRecords:{},exams:{},weekly:{},streak:0,dailyGoal:300},updated_at:new Date().toISOString()})
-    });
-    if(!r.ok){const t=await r.text();toast('注册失败: '+t);return}
-    localStorage.setItem('yt_account',account);localStorage.setItem('yt_pass',password);
-    toast('✅ 注册成功！');updateAuthUI();syncToCloud();
-  }catch(e){toast('注册失败: '+e.message)}
-}
-
-async function signIn(account,password){
-  if(!account||!password){toast('请输入账号和密码');return}
-  const cfg=getSbConfig();if(!cfg){toast('连接失败');return}
-  const token=await sha256(makeToken(account,password));
-  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
-  try{
-    const r=await fetch(cfg.url+'/rest/v1/shares?select=code,data,nickname&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
-    if(!r.ok){toast('登录失败，请检查网络');return}
-    const rows=await r.json();
-    if(!rows||!rows.length){toast('账号不存在，请先注册');return}
-    const savedToken=(rows[0].data||{})._token;
-    if(savedToken!==token){toast('密码错误');return}
-    localStorage.setItem('yt_account',account);localStorage.setItem('yt_pass',password);
-    toast('✅ 登录成功！');updateAuthUI();pullFromCloud();
-  }catch(e){toast('登录失败: '+e.message)}
-}
-
-function signOut(){
-  localStorage.removeItem('yt_account');localStorage.removeItem('yt_pass');
-  toast('已退出登录');updateAuthUI();
-}
-
-async function syncToCloud(){
-  const account=getSavedAccount(),password=getSavedPassword();
-  if(!account||!password)return;
-  const cfg=getSbConfig();if(!cfg)return;
-  const token=await sha256(makeToken(account,password));
-  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
-  const payload={_token:token,history:D.history||{},listenRecords:D.listenRecords||{},practiceRecords:D.practiceRecords||{},exams:D.exams||{},weekly:D.weekly||{},streak:D.streak||0,dailyGoal:D.dailyGoal||300,updatedAt:new Date().toISOString()};
-  try{
-    const r=await fetch(cfg.url+'/rest/v1/shares?code=eq.'+encodeURIComponent(code),{method:'PATCH',headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},body:JSON.stringify({data:payload,updated_at:new Date().toISOString()})});
-    if(r.ok){localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());updateSyncTime()}
-  }catch(e){}
-}
-
-async function pullFromCloud(){
-  const account=getSavedAccount(),password=getSavedPassword();
-  if(!account||!password)return;
-  const cfg=getSbConfig();if(!cfg)return;
-  const token=await sha256(makeToken(account,password));
-  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
-  try{
-    const r=await fetch(cfg.url+'/rest/v1/shares?select=data,updated_at&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
-    if(!r.ok)return;const rows=await r.json();if(!rows||!rows.length)return;
-    const cloudData=rows[0].data;if(!cloudData||cloudData._token!==token||!cloudData.history)return;
-    const localUpdated=getLocalUpdated(),cloudUpdated=rows[0].updated_at;
-    if(cloudUpdated&&localUpdated&&new Date(cloudUpdated)<=new Date(localUpdated))return;
-    D=Object.assign(defData(),cloudData);delete D._token;
-    ensureIds();save();updStats();renderList();renderWeekly();
-    if(typeof renderCal==='function')renderCal();
-    localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());updateSyncTime();
-    toast('✅ 已从云端同步数据');
-  }catch(e){}
-}
-
-function getLocalUpdated(){
-  try{const raw=localStorage.getItem(GK);if(!raw)return null;const d=JSON.parse(raw);return d.updatedAt||null}catch(e){return null}
-}
-
-function autoSyncUserData(){
-  const now=Date.now();
-  if(now-_lastSync<5000){clearTimeout(_syncTimer);_syncTimer=setTimeout(autoSyncUserData,5000);return}
-  _lastSync=now;syncToCloud().catch(()=>{});
-}
-
-function updateSyncTime(){
-  const el=document.getElementById('lastSyncTime');
-  if(el){const t=localStorage.getItem('yt_last_sync_time');el.textContent=t||'从未同步'}
-}
-
-function updateAuthUI(){
-  const loggedOut=document.getElementById('authLoggedOut');
-  const loggedIn=document.getElementById('authLoggedIn');
-  const userAcct=document.getElementById('authUserAccount');
-  const syncBtn=document.getElementById('authSyncBtn');
-  if(!loggedOut||!loggedIn)return;
-  const acct=getSavedAccount();
-  if(acct){loggedOut.style.display='none';loggedIn.style.display='block';if(userAcct)userAcct.textContent=acct;if(syncBtn)syncBtn.style.display=''}
-  else{loggedOut.style.display='block';loggedIn.style.display='none';if(syncBtn)syncBtn.style.display='none'}
-  updateSyncTime();
-}
-
-async function manualSync(){
-  if(!isLoggedIn()){toast('请先登录');return}
-  toast('⏳ 正在同步...');await syncToCloud();toast('✅ 同步完成');
-}
-
-function handleSignIn(){
-  const account=document.getElementById('authAccount').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!account||!password){toast('请填写账号和密码');return}
-  if(account.length<2){toast('账号至少2位');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signIn(account,password);
-}
-function handleSignUp(){
-  const account=document.getElementById('authAccount').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!account||!password){toast('请填写账号和密码');return}
-  if(account.length<2){toast('账号至少2位');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signUp(account,password);
-}
-
-(function initAuth(){
-  if(isLoggedIn()){updateAuthUI();pullFromCloud()}
-  setTimeout(updateAuthUI,300);
-})();
-
 function saveCustomTitle(){
   const v=document.getElementById('customTitle').value.trim()||'YT考公学习打卡';
   localStorage.setItem('yt_custom_title',v);
@@ -2053,7 +1873,7 @@ function startListen(){
   if(D.L.start&&!D.L.paused)return;
   if(D.L.paused){resumeListen();return;}
   D.L.start=Date.now();D.L.paused=false;D.L.elapsed=0;D.L.subject=listenSubject;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   updListenUI();startListenInt();toast('🚀 开始听课：'+listenSubject);
 }
 function toggleListen(){
@@ -2066,7 +1886,7 @@ function pauseListen(){
   if(!D.L.start||D.L.paused)return;
   D.L.elapsed=(D.L.elapsed||0)+Math.max(0,Date.now()-D.L.start);
   D.L.paused=true;D.L.start=null;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   if(listenInt){clearInterval(listenInt);listenInt=null}
   document.getElementById('listenClock').textContent=fmtClock((D.L.elapsed||0)/1000);
   updListenUI();updStats();renderList();renderWeekly();toast('⏸ 已暂停');
@@ -2074,7 +1894,7 @@ function pauseListen(){
 function resumeListen(){
   if(!D.L.paused)return;
   D.L.start=Date.now();D.L.paused=false;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   document.getElementById('listenClock').textContent=fmtClock((D.L.elapsed||0)/1000);
   updListenUI();startListenInt();toast('▶ 继续学习');
 }
@@ -2132,7 +1952,7 @@ function startPractice(){
   if(D.P.start&&!D.P.paused)return;
   if(D.P.paused){resumePractice();return;}
   D.P.start=Date.now();D.P.paused=false;D.P.elapsed=0;D.P.subject=practiceSubject;D.P.totalQ=0;D.P.correctQ=0;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   updPracticeUI();startPracticeInt();toast('🚀 开始刷题：'+practiceSubject);
 }
 function togglePractice(){
@@ -2145,7 +1965,7 @@ function pausePractice(){
   if(!D.P.start||D.P.paused)return;
   D.P.elapsed=(D.P.elapsed||0)+Math.max(0,Date.now()-D.P.start);
   D.P.paused=true;D.P.start=null;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   if(practiceInt){clearInterval(practiceInt);practiceInt=null}
   document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
   updPracticeUI();updPracticeSessions();updStats();renderList();renderWeekly();toast('⏸ 已暂停');
@@ -2153,7 +1973,7 @@ function pausePractice(){
 function resumePractice(){
   if(!D.P.paused)return;
   D.P.start=Date.now();D.P.paused=false;
-  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();
   document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
   updPracticeUI();startPracticeInt();toast('▶ 继续刷题');
 }
@@ -2227,6 +2047,7 @@ function openExamMod(subject,name,totalMs,totalQ,correctQ,tk){
 }
 function closeExamMod(){
   document.getElementById('examModOverlay').classList.add('hidden');
+  // 关闭不保存时，重置计时器状态避免卡死
   if(_examModData){
     D.P={start:null,paused:false,subject:null,elapsed:0,totalQ:0,correctQ:0};
     localStorage.removeItem('yt_live_timer');
@@ -2995,22 +2816,9 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistration().then(reg=>{if(reg)reg.update()});
   },1800000);
 }
+
 // 显示版本号
 (function(){const el=document.getElementById('appVersion');if(el)el.textContent='v.'+APP_VER})();
-
-// 版本检测：如果 localStorage 版本号不匹配，强制刷新页面
-(function(){
-  const prev=localStorage.getItem('yt_app_ver');
-  if(prev&&prev!==APP_VER){
-    localStorage.setItem('yt_app_ver',APP_VER);
-    if(!sessionStorage.getItem('yt_reloaded')){
-      sessionStorage.setItem('yt_reloaded','1');
-      location.reload(true);
-    }
-  }else{
-    localStorage.setItem('yt_app_ver',APP_VER);
-  }
-})();
 
 </script>
 </body>
