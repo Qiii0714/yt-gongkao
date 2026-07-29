@@ -2146,11 +2146,11 @@ function renderSharedData(sd,nickname){
   Object.values(sd.exams||{}).forEach(arr=>examN+=arr.length);
 
   const today=gdk();
-  const todayH=Math.round((totalDur/60)*10)/10;
+  const shareTotalH=Math.round((totalDur/60)*10)/10;
   const totalDays=Object.keys(hist).length;
-  const avgH=totalDays>0?(todayH/totalDays).toFixed(1):'0.0';
+  const shareAvgH=totalDays>0?(shareTotalH/totalDays).toFixed(1):'0.0';
   const maxDayDur=Math.max(...Object.values(hist).map(h=>h.duration||0),0);
-  const maxH=(maxDayDur/60).toFixed(1);
+  const shareMaxH=(maxDayDur/60).toFixed(1);
   
   // 今日学习记录
   const todayRecs=[];
@@ -2267,7 +2267,7 @@ function renderSharedData(sd,nickname){
     </div>
     <div class="green-card" style="margin:0 0 12px 0">
       <div class="green-card-title">累计 ${checkedDays} 天</div>
-      <div class="green-card-sub">总时长 ${todayH}h · 日均 ${avgH}h · 最长 ${maxH}h</div>
+      <div class="green-card-sub">总时长 ${shareTotalH}h · 日均 ${shareAvgH}h · 最长 ${shareMaxH}h</div>
     </div>
     ${weekHtml}
     <div style="font-size:13px;font-weight:700;margin:12px 0 8px">📝 今日学习</div>
