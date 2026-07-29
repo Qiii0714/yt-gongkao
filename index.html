@@ -13,25 +13,27 @@
 // 内联 Service Worker — 实现离线访问
 if('serviceWorker' in navigator){
   const swCode=`
-const CACHE='yt-gk-v3';
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./app.html'])).then(()=>self.skipWaiting()))});
+const CACHE='yt-gk-v4';
+// 安装时跳过等待，立即激活新 SW
+self.addEventListener('install',e=>{self.skipWaiting()});
+// 激活时清除所有旧缓存，强制全新加载
 self.addEventListener('activate',e=>{
   e.waitUntil((async()=>{
-    // 清除所有旧版本缓存，确保用户拿到最新页面
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+    await Promise.all(keys.map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
+// Network-first 策略：永远先走网络，网络失败才用缓存
 self.addEventListener('fetch',e=>{
   e.respondWith(
-    caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{
+    fetch(e.request).then(resp=>{
       if(resp.ok){
         const clone=resp.clone();
         caches.open(CACHE).then(c=>c.put(e.request,clone));
       }
       return resp;
-    }))
+    }).catch(()=>caches.match(e.request))
   );
 });
 `;
@@ -874,7 +876,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260729_v36';
+const APP_VER='20260729_v37';
 // 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
 (function(){
   setInterval(()=>{
