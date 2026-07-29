@@ -876,17 +876,23 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260729_v37';
-// 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
+const APP_VER='20260729_v38';
+// 强力版本检测：每次加载立即检查，发现旧版立刻强制刷新
 (function(){
-  setInterval(()=>{
-    fetch('./version.txt?t='+Date.now()).then(r=>r.text()).then(v=>{
-      if(v.trim()!==APP_VER&&!sessionStorage.getItem('yt_auto_reload')){
-        sessionStorage.setItem('yt_auto_reload','1');
+  const currentVer=localStorage.getItem('yt_app_ver');
+  if(currentVer&&currentVer!==APP_VER){
+    // 检测到版本变化，清除所有缓存后强制刷新
+    localStorage.setItem('yt_app_ver',APP_VER);
+    if(caches&&caches.keys){
+      caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).finally(()=>{
         location.reload(true);
-      }
-    }).catch(()=>{});
-  },300000);
+      });
+    }else{
+      location.reload(true);
+    }
+  }else{
+    localStorage.setItem('yt_app_ver',APP_VER);
+  }
 })();
 const GK='yt_gk_v6', DAILY=300;
 // 分享相关变量（必须在 save() 调用前声明）
@@ -3052,25 +3058,11 @@ if('serviceWorker' in navigator){
       });
     }).catch(()=>{});
   });
-  // 每30分钟自动检查一次更新
+  // 每30分钟自动检查一次 SW 更新
   setInterval(()=>{
     navigator.serviceWorker.getRegistration().then(reg=>{if(reg)reg.update()});
   },1800000);
 }
-
-// 版本检测：如果 localStorage 版本号不匹配，强制刷新页面
-(function(){
-  const prev=localStorage.getItem('yt_app_ver');
-  if(prev&&prev!==APP_VER){
-    localStorage.setItem('yt_app_ver',APP_VER);
-    if(!sessionStorage.getItem('yt_reloaded')){
-      sessionStorage.setItem('yt_reloaded','1');
-      location.reload(true);
-    }
-  }else{
-    localStorage.setItem('yt_app_ver',APP_VER);
-  }
-})();
 
 </script>
 
