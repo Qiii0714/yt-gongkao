@@ -788,6 +788,8 @@ const APP_VER='20260729_v4';
 const GK='yt_gk_v6', DAILY=300;
 // 分享相关变量（必须在 save() 调用前声明）
 let _sbClient=null,_sbConfig=null,_myShareCode=null,_autoSyncTimer=null,_lastAutoSync=0,_lastViewCode='';
+// Auth 同步变量
+let _sbAuthClient=null,_syncTimer=null,_lastSync=0;
 const SUBJECTS=['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析','归纳概括','综合分析','提出对策','应用文','大作文','公文'];
 const IDIOM_CATS=['人物神态','事态发展','对象误用','褒贬颠倒'];
 const IDIOMS=[
@@ -1651,7 +1653,6 @@ async function sbReq(method,path,body){
 }
 
 // ===== Supabase Auth 用户登录 =====
-let _sbAuthClient=null;
 function initSupabase(){
   if(_sbAuthClient)return _sbAuthClient;
   const cfg=getSbConfig();
@@ -1662,9 +1663,9 @@ function initSupabase(){
   return _sbAuthClient;
 }
 
-// 账号转虚拟邮箱：Supabase Auth 要求邮箱格式，用 @yt.user 后缀
-function acct2email(account){return account+'@yt.user'}
-function email2acct(email){return (email||'').replace('@yt.user','')}
+// 账号转虚拟邮箱：Supabase Auth 要求邮箱格式，用合法域名后缀
+function acct2email(account){return account+'@ytuser.com'}
+function email2acct(email){return (email||'').replace('@ytuser.com','')}
 
 async function signUp(account,password){
   const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
@@ -1702,7 +1703,6 @@ async function getCurrentUser(){
 }
 
 // ===== 云端数据同步 =====
-let _syncTimer=null,_lastSync=0;
 
 async function syncToCloud(){
   const user=await getCurrentUser();
