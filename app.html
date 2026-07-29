@@ -1311,15 +1311,6 @@ try{
   save();
 }catch(e){restoreLiveTimer();save()}
 function save(){
-  // 写入 GK 之前，确保 D 包含进行中的计时（防止 D 被意外重置后丢失计时）
-  const hasLiveL=D.L&&(D.L.start||D.L.paused);
-  const hasLiveP=D.P&&(D.P.start||D.P.paused);
-  if(!hasLiveL||!hasLiveP){
-    try{
-      const raw=localStorage.getItem('yt_live_timer');
-      if(raw){const s=JSON.parse(raw);if(s&&s.L&&!hasLiveL)D.L=s.L;if(s&&s.P&&!hasLiveP)D.P=s.P;}
-    }catch(e){}
-  }
   localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup()
 }
 // 如果已开启分享，自动同步数据到云端（防抖，5秒内最多同步一次）
@@ -2363,7 +2354,7 @@ function pauseListen(){
 function resumeListen(){
   if(!D.L.paused)return;
   D.L.start=Date.now();D.L.paused=false;
-  localStorage.setItem(GK,JSON.stringify(D)); persistLiveTimer();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoDualSave();autoSyncUserData();
   document.getElementById('listenClock').textContent=fmtClock((D.L.elapsed||0)/1000);
   updListenUI();startListenInt();toast('▶ 继续学习');
 }
@@ -2442,7 +2433,7 @@ function pausePractice(){
 function resumePractice(){
   if(!D.P.paused)return;
   D.P.start=Date.now();D.P.paused=false;
-  localStorage.setItem(GK,JSON.stringify(D)); persistLiveTimer();
+  localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoDualSave();autoSyncUserData();
   document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
   updPracticeUI();startPracticeInt();toast('▶ 继续刷题');
 }
