@@ -1,36 +1,27 @@
--- YT考公学习打卡 - 用户数据同步表
+-- YT考公学习打卡 - 用户数据同步表（自建 Token 认证，无需 Supabase Auth）
 -- 在 Supabase SQL Editor 中执行此脚本
 
--- 1. 创建 user_data 表
-CREATE TABLE IF NOT EXISTS user_data (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+-- 1. 删除旧表（如果存在）
+DROP TABLE IF EXISTS user_data;
+
+-- 2. 创建 user_data 表
+CREATE TABLE user_data (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  account TEXT NOT NULL,
+  token TEXT NOT NULL,
   data JSONB NOT NULL DEFAULT '{}',
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id)
+  UNIQUE(account)
 );
 
--- 2. 启用行级安全
+-- 3. 启用行级安全（允许匿名读写，通过 token 验证在应用层完成）
 ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
 
--- 3. RLS 策略：用户只能读写自己的数据
-CREATE POLICY "Users can read own data" ON user_data
-  FOR SELECT USING (auth.uid() = user_id);
+-- 4. 允许公开读写（安全由应用层 token 验证保证）
+CREATE POLICY "Allow public read" ON user_data FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON user_data FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update" ON user_data FOR UPDATE USING (true);
 
-CREATE POLICY "Users can insert own data" ON user_data
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own data" ON user_data
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- 4. 创建更新时间自动触发器
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON user_data
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- 5. 索引
+CREATE INDEX idx_user_data_account ON user_data(account);
+CREATE INDEX idx_user_data_token ON user_data(token);

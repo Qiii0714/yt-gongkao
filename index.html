@@ -763,9 +763,8 @@ body{padding-bottom:64px}
 
 <div class="toast hidden" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const APP_VER='20260729_v4';
+const APP_VER='20260729_v5';
 // 页面加载时强制清除缓存（版本更新时）
 (function(){
   const cachedVer=localStorage.getItem('yt_app_ver');
@@ -789,7 +788,7 @@ const GK='yt_gk_v6', DAILY=300;
 // 分享相关变量（必须在 save() 调用前声明）
 let _sbClient=null,_sbConfig=null,_myShareCode=null,_autoSyncTimer=null,_lastAutoSync=0,_lastViewCode='';
 // Auth 同步变量
-let _sbAuthClient=null,_syncTimer=null,_lastSync=0;
+let _syncTimer=null,_lastSync=0;
 const SUBJECTS=['政治理论','常识判断','言语理解','判断推理','数量关系','资料分析','归纳概括','综合分析','提出对策','应用文','大作文','公文'];
 const IDIOM_CATS=['人物神态','事态发展','对象误用','褒贬颠倒'];
 const IDIOMS=[
@@ -1652,120 +1651,144 @@ async function sbReq(method,path,body){
   return txt?JSON.parse(txt):null;
 }
 
-// ===== Supabase Auth 用户登录 =====
-function initSupabase(){
-  if(_sbAuthClient)return _sbAuthClient;
-  const cfg=getSbConfig();
-  if(!cfg)return null;
-  if(window.supabase&&window.supabase.createClient){
-    _sbAuthClient=window.supabase.createClient(cfg.url,cfg.key);
-  }
-  return _sbAuthClient;
+// ===== 用户登录/数据同步（自建 Token 机制） =====
+// 用账号+密码生成 SHA256 token，无需 Supabase Auth 邮箱验证
+// 数据存在 user_data 表，以 account 为 key
+
+async function sha256(str){
+  const encoder=new TextEncoder();
+  const data=encoder.encode(str);
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// 账号转虚拟邮箱：Supabase Auth 要求邮箱格式，用合法域名后缀
-function acct2email(account){return account+'@ytuser.com'}
-function email2acct(email){return (email||'').replace('@ytuser.com','')}
+function makeToken(account,password){return account+':'+password}
 
+function getSavedAccount(){
+  return localStorage.getItem('yt_account')||'';
+}
+
+function getSavedPassword(){
+  return localStorage.getItem('yt_pass')||'';
+}
+
+function isLoggedIn(){
+  return !!getSavedAccount()&&!!getSavedPassword();
+}
+
+// 注册：存 token 到 shares 表（复用已有表，token 存在 data 内）
 async function signUp(account,password){
-  const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
-  const email=acct2email(account);
-  const {data,error}=await sb.auth.signUp({email,password});
-  if(error){
-    // rate limit 提示
-    if(error.message.includes('rate limit')||error.message.includes('security')||error.message.includes('seconds')){
-      toast('操作太频繁，请1分钟后再试');return;
+  if(!account||!password){toast('请输入账号和密码');return}
+  if(account.length<2){toast('账号至少2位');return}
+  if(password.length<6){toast('密码至少6位');return}
+  const cfg=getSbConfig();if(!cfg){toast('连接失败');return}
+  const token=await sha256(makeToken(account,password));
+  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
+  try{
+    // 先检查是否已存在
+    const check=await fetch(cfg.url+'/rest/v1/shares?select=code&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
+    if(check.ok){
+      const rows=await check.json();
+      if(rows&&rows.length>0){toast('账号已存在，请直接登录');return}
     }
-    // 其他错误直接提示
-    toast('注册失败: '+error.message);return
-  }
-  if(data.user){localStorage.setItem('yt_account',account);toast('✅ 注册成功，已自动登录');updateAuthUI();pullFromCloud();}
+    // 创建新记录 — token 存在 data._token 中
+    const r=await fetch(cfg.url+'/rest/v1/shares',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Prefer':'return=representation'},
+      body:JSON.stringify({code,nickname:account,active:true,data:{_token:token,history:{},listenRecords:{},practiceRecords:{},exams:{},weekly:{},streak:0,dailyGoal:300},updated_at:new Date().toISOString()})
+    });
+    if(!r.ok){const t=await r.text();toast('注册失败: '+t);return}
+    localStorage.setItem('yt_account',account);
+    localStorage.setItem('yt_pass',password);
+    toast('✅ 注册成功！');
+    updateAuthUI();
+    syncToCloud();
+  }catch(e){toast('注册失败: '+e.message)}
 }
 
+// 登录：验证 token
 async function signIn(account,password){
-  const sb=initSupabase();if(!sb){toast('Supabase 未配置');return}
-  const email=acct2email(account);
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){toast('登录失败: '+error.message);return}
-  if(data.user){localStorage.setItem('yt_account',account);toast('✅ 登录成功');updateAuthUI();pullFromCloud();}
+  if(!account||!password){toast('请输入账号和密码');return}
+  const cfg=getSbConfig();if(!cfg){toast('连接失败');return}
+  const token=await sha256(makeToken(account,password));
+  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
+  try{
+    const r=await fetch(cfg.url+'/rest/v1/shares?select=code,data,nickname&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
+    if(!r.ok){toast('登录失败，请检查网络');return}
+    const rows=await r.json();
+    if(!rows||!rows.length){toast('账号不存在，请先注册');return}
+    const savedToken=(rows[0].data||{})._token;
+    if(savedToken!==token){toast('密码错误');return}
+    localStorage.setItem('yt_account',account);
+    localStorage.setItem('yt_pass',password);
+    toast('✅ 登录成功！');
+    updateAuthUI();
+    pullFromCloud();
+  }catch(e){toast('登录失败: '+e.message)}
 }
 
-async function signOut(){
-  const sb=initSupabase();if(!sb)return;
+function signOut(){
   localStorage.removeItem('yt_account');
-  await sb.auth.signOut();
+  localStorage.removeItem('yt_pass');
   toast('已退出登录');
   updateAuthUI();
 }
 
-async function getSession(){
-  const sb=initSupabase();if(!sb)return null;
-  const {data}=await sb.auth.getSession();
-  return data.session;
-}
-
-async function getCurrentUser(){
-  const session=await getSession();
-  return session?session.user:null;
-}
-
-// ===== 云端数据同步 =====
-
 async function syncToCloud(){
-  const user=await getCurrentUser();
-  if(!user)return;
-  const sb=initSupabase();if(!sb)return;
+  const account=getSavedAccount(),password=getSavedPassword();
+  if(!account||!password)return;
+  const cfg=getSbConfig();if(!cfg)return;
+  const token=await sha256(makeToken(account,password));
+  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
   const payload={
+    _token:token,
     history:D.history||{},listenRecords:D.listenRecords||{},practiceRecords:D.practiceRecords||{},
     exams:D.exams||{},weekly:D.weekly||{},streak:D.streak||0,dailyGoal:D.dailyGoal||300,
     updatedAt:new Date().toISOString()
   };
   try{
-    // 使用 upsert：先查后插或更新
-    const {error}=await sb.from('user_data').upsert({
-      user_id:user.id,data:payload,updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
-    if(error)throw error;
-    localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());
-    updateSyncTime();
-    console.log('✅ 云端同步完成');
-  }catch(e){console.warn('云端同步失败:',e.message)}
+    const r=await fetch(cfg.url+'/rest/v1/shares?code=eq.'+encodeURIComponent(code),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},
+      body:JSON.stringify({data:payload,updated_at:new Date().toISOString()})
+    });
+    if(r.ok){
+      localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());
+      updateSyncTime();
+    }
+  }catch(e){}
 }
 
 async function pullFromCloud(){
-  const user=await getCurrentUser();
-  if(!user)return;
-  const sb=initSupabase();if(!sb)return;
+  const account=getSavedAccount(),password=getSavedPassword();
+  if(!account||!password)return;
+  const cfg=getSbConfig();if(!cfg)return;
+  const token=await sha256(makeToken(account,password));
+  const code='U_'+btoa(account).slice(0,10).replace(/[+/=]/g,'');
   try{
-    const {data,error}=await sb.from('user_data').select('data,updated_at').eq('user_id',user.id).single();
-    if(error||!data){console.log('云端无数据，跳过拉取');return}
-    const cloudData=data.data;
-    if(!cloudData||!cloudData.history)return;
-    // 合并策略：云端数据合并到本地
+    const r=await fetch(cfg.url+'/rest/v1/shares?select=data,updated_at&code=eq.'+encodeURIComponent(code),{headers:{apikey:cfg.key,'Authorization':'Bearer '+cfg.key}});
+    if(!r.ok)return;
+    const rows=await r.json();
+    if(!rows||!rows.length)return;
+    const cloudData=rows[0].data;
+    if(!cloudData||cloudData._token!==token)return;
+    if(!cloudData.history)return;
     const localUpdated=getLocalUpdated();
-    const cloudUpdated=data.updated_at;
-    if(cloudUpdated&&localUpdated&&new Date(cloudUpdated)<=new Date(localUpdated)){
-      console.log('本地数据更新，跳过云端覆盖');
-      return;
-    }
-    // 合并数据
+    const cloudUpdated=rows[0].updated_at;
+    if(cloudUpdated&&localUpdated&&new Date(cloudUpdated)<=new Date(localUpdated))return;
     D=Object.assign(defData(),cloudData);
+    delete D._token; // 不覆盖 token
     ensureIds();save();
     updStats();renderList();renderWeekly();
     if(typeof renderCal==='function')renderCal();
     localStorage.setItem('yt_last_sync_time',new Date().toLocaleString());
     updateSyncTime();
     toast('✅ 已从云端同步数据');
-  }catch(e){console.warn('云端拉取失败:',e.message)}
+  }catch(e){}
 }
 
 function getLocalUpdated(){
-  try{
-    const raw=localStorage.getItem(GK);
-    if(!raw)return null;
-    const d=JSON.parse(raw);
-    return d.updatedAt||null;
-  }catch(e){return null}
+  try{const raw=localStorage.getItem(GK);if(!raw)return null;const d=JSON.parse(raw);return d.updatedAt||null}catch(e){return null}
 }
 
 function autoSyncUserData(){
@@ -1786,57 +1809,36 @@ function updateAuthUI(){
   const userAcct=document.getElementById('authUserAccount');
   const syncBtn=document.getElementById('authSyncBtn');
   if(!loggedOut||!loggedIn)return;
-  getCurrentUser().then(user=>{
-    if(user){
-      loggedOut.style.display='none';
-      loggedIn.style.display='block';
-      const acct=email2acct(user.email)||localStorage.getItem('yt_account')||'--';
-      if(userAcct)userAcct.textContent=acct;
-      if(syncBtn)syncBtn.style.display='';
-    }else{
-      loggedOut.style.display='block';
-      loggedIn.style.display='none';
-      if(syncBtn)syncBtn.style.display='none';
-    }
-    updateSyncTime();
-  });
+  const acct=getSavedAccount();
+  if(acct){
+    loggedOut.style.display='none';
+    loggedIn.style.display='block';
+    if(userAcct)userAcct.textContent=acct;
+    if(syncBtn)syncBtn.style.display='';
+  }else{
+    loggedOut.style.display='block';
+    loggedIn.style.display='none';
+    if(syncBtn)syncBtn.style.display='none';
+  }
+  updateSyncTime();
 }
 
 async function manualSync(){
-  const user=await getCurrentUser();
-  if(!user){toast('请先登录');return}
+  if(!isLoggedIn()){toast('请先登录');return}
   toast('⏳ 正在同步...');
   await syncToCloud();
   toast('✅ 同步完成');
 }
 
-function handleSignIn(){
-  const account=document.getElementById('authAccount').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!account||!password){toast('请填写账号和密码');return}
-  if(account.length<3){toast('账号至少3位');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signIn(account,password);
-}
-function handleSignUp(){
-  const account=document.getElementById('authAccount').value.trim();
-  const password=document.getElementById('authPassword').value.trim();
-  if(!account||!password){toast('请填写账号和密码');return}
-  if(account.length<3){toast('账号至少3位');return}
-  if(password.length<6){toast('密码至少6位');return}
-  signUp(account,password);
-}
-
-// ===== 初始化：检查登录状态并拉取云端数据 =====
-(async function initAuth(){
-  try{
-    const sb=initSupabase();
-    if(!sb)return;
-    const session=await getSession();
-    if(session){console.log('已登录:',email2acct(session.user.email));pullFromCloud();}
-  }catch(e){}
-  setTimeout(updateAuthUI,500);
+// 初始化：检查本地登录状态
+(function initAuth(){
+  if(isLoggedIn()){
+    updateAuthUI();
+    pullFromCloud();
+  }
+  setTimeout(updateAuthUI,300);
 })();
+
 
 async function testSbConnection(){
   try{
