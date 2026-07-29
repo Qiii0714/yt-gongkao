@@ -2611,8 +2611,8 @@ function calcStreak(){let s=0;const t=new Date();for(let i=0;i<365;i++){const d=
 
 // Calendar
 let calM=new Date();
-function showCalendar(){document.getElementById('calOverlay').classList.remove('hidden');renderCal()}
-function closeCal(){document.getElementById('calOverlay').classList.add('hidden')}
+function showCalendar(){document.getElementById('calOverlay').classList.remove('hidden');document.getElementById('calDetail').innerHTML='';renderCal()}
+function closeCal(){document.getElementById('calOverlay').classList.add('hidden');document.getElementById('calDetail').innerHTML='';}
 function chgMonth(d){calM.setMonth(calM.getMonth()+d);renderCal()}
 function renderCal(){
   const y=calM.getFullYear(),m=calM.getMonth();
@@ -2634,7 +2634,7 @@ function renderCal(){
   document.getElementById('calGrid').innerHTML=html;
   let cd=0,td=0;Object.values(D.history).forEach(h=>{if(h.checked)cd++;td+=h.duration});
   document.getElementById('calSummary').innerHTML='累计打卡 <b>'+cd+'</b> 天 · 累计学习 <b>'+fmtDur(td)+'</b>';
-  document.getElementById('calDetail').innerHTML='';
+  // 不清空 calDetail — 用户可能在查看某天的详情，由 showDayDetail/closeCal 管理
 }
 function showDayDetail(dk){
   const L=D.listenRecords[dk]||[],P=D.practiceRecords[dk]||[];
