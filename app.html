@@ -2161,13 +2161,18 @@ function renderSharedData(sd,nickname){
   const todayRecsHtml=todayRecs.length?todayRecs.map(r=>{
     const dur=Math.round(Math.max(0,(r.end-r.start)/60000));
     const ds=fmtDur(dur);
+    const ts=fmtTime(r.start)+'-'+fmtTime(r.end);
     const tag=r.type==='practice'?'刷题':'听课';
     let extra='';
-    if(r.type==='listen'&&r.note)extra=' · '+escHtml(r.note);
-    else if(r.type==='practice'&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
+    if(r.type==='listen'&&r.note){
+      extra='<span style="font-size:11px;color:var(--t3);margin-left:4px">'+escHtml(r.note)+'</span>';
+    }else if(r.type==='practice'&&r.totalQ>0){
+      extra='<span style="font-size:11px;color:var(--o);margin-left:4px">'+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%</span>';
+    }
+    const tagColor=r.type==='practice'?'var(--o)':'var(--g)';
     return '<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
-      +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:var(--t3)">'+tag+extra+'</div></div>'
-      +'<div style="text-align:right"><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
+      +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:'+tagColor+';font-weight:500">['+tag+']'+extra+'</div></div>'
+      +'<div style="text-align:right"><div style="font-size:11px;color:var(--t3)">'+ts+'</div><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
   }).join(''):'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">今天暂无记录</div>';
 
   // 历史记录（按日期分组，排除今天）
@@ -2187,13 +2192,18 @@ function renderSharedData(sd,nickname){
     dayRecs.forEach(r=>{
       const dur=Math.round(Math.max(0,(r.end-r.start)/60000));
       const ds=fmtDur(dur);
+      const ts=fmtTime(r.start)+'-'+fmtTime(r.end);
       const tag=r.type==='practice'?'刷题':'听课';
       let extra='';
-      if(r.type==='listen'&&r.note)extra=' · '+escHtml(r.note);
-      else if(r.type==='practice'&&r.totalQ>0)extra=' · '+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%';
+      if(r.type==='listen'&&r.note){
+        extra='<span style="font-size:11px;color:var(--t3);margin-left:4px">'+escHtml(r.note)+'</span>';
+      }else if(r.type==='practice'&&r.totalQ>0){
+        extra='<span style="font-size:11px;color:var(--o);margin-left:4px">'+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%</span>';
+      }
+      const tagColor=r.type==='practice'?'var(--o)':'var(--g)';
       historyHtml+='<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--b);font-size:13px">'
-        +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:var(--t3)">'+tag+extra+'</div></div>'
-        +'<div style="text-align:right"><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
+        +'<div><div style="font-weight:600">'+escHtml(r.subject)+'</div><div style="font-size:11px;color:'+tagColor+';font-weight:500">['+tag+']'+extra+'</div></div>'
+        +'<div style="text-align:right"><div style="font-size:11px;color:var(--t3)">'+ts+'</div><div style="font-weight:600;color:var(--g)">'+ds+'</div></div></div>';
     });
   });
 
@@ -2326,6 +2336,8 @@ function showListen(){
   document.getElementById('listenNote').value=D.L.note||'';
   // 如果正在计时，重新启动 interval（关闭面板后重开需要恢复跳动）
   if(D.L.start&&!D.L.paused)startListenInt();
+  // 空闲状态时重置时钟显示
+  if(!D.L.start&&!D.L.paused)document.getElementById('listenClock').textContent='00:00:00';
 }
 function closeListen(){
   document.getElementById('listenOverlay').classList.add('hidden');
@@ -2408,6 +2420,8 @@ function showPractice(){
   updPracticeUI();updPracticeSessions();renderExamList();
   // 如果正在计时，重新启动 interval（关闭面板后重开需要恢复跳动）
   if(D.P.start&&!D.P.paused)startPracticeInt();
+  // 空闲状态时重置时钟显示
+  if(!D.P.start&&!D.P.paused)document.getElementById('practiceClock').textContent='00:00:00';
 }
 function closePractice(){
   document.getElementById('practiceOverlay').classList.add('hidden');
