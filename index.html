@@ -2345,7 +2345,10 @@ function toggleListen(){
 }
 function pauseListen(){
   if(!D.L.start||D.L.paused)return;
-  D.L.elapsed=(D.L.elapsed||0)+Math.max(0,Date.now()-D.L.start);
+  const now=Date.now();
+  // 防御：start 必须是有效的时间戳（大于 2024-01-01）
+  if(!D.L.start||D.L.start<1700000000000){console.error('[pauseListen] invalid start:',D.L.start);D.L.paused=true;D.L.start=null;save();return;}
+  D.L.elapsed=(D.L.elapsed||0)+Math.max(0,now-D.L.start);
   D.L.paused=true;D.L.start=null;localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoDualSave();autoSyncUserData();
   if(listenInt){clearInterval(listenInt);listenInt=null}
   document.getElementById('listenClock').textContent=fmtClock((D.L.elapsed||0)/1000);
@@ -2373,7 +2376,7 @@ function doneListen(){
   if(listenInt){clearInterval(listenInt);listenInt=null}
   save();closeListen();updStats();renderList();renderWeekly();toast('✅ 听课完成！');
 }
-function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();persistLiveTimer()},1000)}
+function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.L.elapsed||0)/1000;const runningSec=D.L.start&&D.L.start>1700000000000?Math.floor((now-D.L.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();persistLiveTimer()},1000)}
 document.getElementById('listenNote').addEventListener('input',function(){D.L.note=this.value;save()});
 
 // Practice
@@ -2424,7 +2427,9 @@ function togglePractice(){
 }
 function pausePractice(){
   if(!D.P.start||D.P.paused)return;
-  D.P.elapsed=(D.P.elapsed||0)+Math.max(0,Date.now()-D.P.start);
+  const now=Date.now();
+  if(!D.P.start||D.P.start<1700000000000){console.error('[pausePractice] invalid start:',D.P.start);D.P.paused=true;D.P.start=null;save();return;}
+  D.P.elapsed=(D.P.elapsed||0)+Math.max(0,now-D.P.start);
   D.P.paused=true;D.P.start=null;localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoDualSave();autoSyncUserData();
   if(practiceInt){clearInterval(practiceInt);practiceInt=null}
   document.getElementById('practiceClock').textContent=fmtClock((D.P.elapsed||0)/1000);
@@ -2466,7 +2471,7 @@ function donePractice(){
   save();closePractice();updStats();renderList();renderWeekly();renderExamList();
   toast('✅ 刷题完成！');
 }
-function startPracticeInt(){if(practiceInt)clearInterval(practiceInt);practiceInt=setInterval(()=>{const el=(D.P.elapsed||0)/1000+Math.floor((Date.now()-D.P.start)/1000);document.getElementById('practiceClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();persistLiveTimer()},1000)}
+function startPracticeInt(){if(practiceInt)clearInterval(practiceInt);practiceInt=setInterval(()=>{const now=Date.now();const elapsedSec=(D.P.elapsed||0)/1000;const runningSec=D.P.start&&D.P.start>1700000000000?Math.floor((now-D.P.start)/1000):0;const el=elapsedSec+runningSec;document.getElementById('practiceClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();persistLiveTimer()},1000)}
 function calcP(){const t=parseInt(document.getElementById('pTotal').value)||0,c=parseInt(document.getElementById('pCorrect').value)||0;if(t>0&&c>=0&&c<=t){const pct=Math.round(c/t*100);const el=document.getElementById('pResult');el.textContent='正确率：'+pct+'%';el.style.color=pct>=80?'#2ECC71':(pct>=60?'#E8A85C':'#E74C3C')}}
 document.getElementById('pTotal').addEventListener('input',calcP);
 document.getElementById('pCorrect').addEventListener('input',calcP);
