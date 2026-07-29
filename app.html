@@ -502,8 +502,8 @@ body{padding-bottom:64px}
         stroke-dasharray="527.79" stroke-dashoffset="527.79"/>
     </svg>
     <div class="timer-circle" id="timerCircle">
-      <div class="timer-val" id="timerVal">0<span>h</span> 00<span>m</span></div>
-      <div class="timer-label" id="timerLabel">今日目标</div>
+      <div class="timer-label" id="timerLabel">今日已学</div>
+      <div class="timer-val" id="timerVal">0<span>%</span></div>
       <div class="timer-enc" id="timerEnc">继续加油</div>
     </div>
   </div>
@@ -1445,14 +1445,22 @@ function updStats(){
   document.getElementById('statCountdown').textContent=cd!==null?cd+'天':'--天';
   document.getElementById('statCdLabel').textContent=D.examName||'倒计时';
   const safeGoal=goal||DAILY;
-  document.getElementById('timerVal').innerHTML=Math.min(100,Math.round(dur/safeGoal*100))+'<span>%</span>';
   const pct=Math.min(100,dur/safeGoal*100);
+  // 三种颜色：<30% 浅绿 → 30-70% 中绿 → >70% 深绿
+  let ringColor,encText;
+  if(pct<30){ringColor='var(--g4)';encText='千里之行，始于足下 🌱'}
+  else if(pct<70){ringColor='var(--g2)';encText='坚持就是胜利，加油！💪'}
+  else if(pct<100){ringColor='var(--g)';encText='胜利在望，冲刺上岸！🔥'}
+  else{ringColor='var(--gd)';encText='太棒了！目标达成 🎉'}
+  document.getElementById('timerLabel').textContent='今日已学';
+  document.getElementById('timerVal').innerHTML=Math.round(pct)+'<span>%</span>';
   document.getElementById('ringFill').style.strokeDashoffset=527.79-(pct/100*527.79);
+  document.getElementById('ringFill').style.stroke=ringColor;
   const active=(D.L.start&&!D.L.paused)||(D.P.start&&!D.P.paused);
   document.getElementById('timerHint').textContent=active?'正在计时中':'点击圆圈，选择学习模式';
   document.getElementById('timerHint').style.textDecoration=active?'underline':'none';
   document.getElementById('timerHint').style.color=active?'var(--g)':'var(--t3)';
-  document.getElementById('timerEnc').textContent=dur>=safeGoal?'今日目标已达成！':'继续加油';
+  document.getElementById('timerEnc').textContent=encText;
   document.getElementById('studyCount').textContent='今日 '+allToday().length+' 段';
 }
 
@@ -2375,7 +2383,7 @@ function doneListen(){
   if(listenInt){clearInterval(listenInt);listenInt=null}
   save();closeListen();updStats();renderList();renderWeekly();toast('✅ 听课完成！');
 }
-function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();persistLiveTimer()},1000)}
+function startListenInt(){if(listenInt)clearInterval(listenInt);listenInt=setInterval(()=>{const el=(D.L.elapsed||0)/1000+Math.floor((Date.now()-D.L.start)/1000);document.getElementById('listenClock').textContent=fmtClock(el);updStats();renderList();renderWeekly();if(typeof renderCal==='function')renderCal();persistLiveTimer()},1000)}
 document.getElementById('listenNote').addEventListener('input',function(){D.L.note=this.value;save()});
 
 // Practice
@@ -3858,7 +3866,7 @@ if('serviceWorker' in navigator){
     try{ if(localStorage.getItem('yt_tl_night')==='1'){ root.classList.add('tl-night'); $('tlNightBtn').classList.add('active'); } }catch(e){}
     if($('tlVersion')&&typeof APP_VER!=='undefined') $('tlVersion').textContent='v.'+APP_VER;
     tlShow('daka');
-    tlTimerInt=setInterval(tlTick,1000);
+    tlTimerInt=setInterval(()=>{tlTick();updStats();if(typeof renderCal==='function')renderCal();},1000);
     // 回到前台立即刷新（后台计时修复：消除回前台的数字停顿）
     document.addEventListener('visibilitychange',()=>{ if(!document.hidden) tlRefresh(); });
     window.addEventListener('focus',tlRefresh);
@@ -3867,6 +3875,7 @@ if('serviceWorker' in navigator){
   else window.addEventListener('DOMContentLoaded',()=>setTimeout(initTL,0));
 })();
 
+(function(){const el=document.getElementById('appVersion');if(el)el.textContent='v.'+APP_VER})();
 </script>
 </body>
 </html>
