@@ -1830,6 +1830,23 @@ async function manualSync(){
   toast('✅ 同步完成');
 }
 
+function handleSignIn(){
+  const account=document.getElementById('authAccount').value.trim();
+  const password=document.getElementById('authPassword').value.trim();
+  if(!account||!password){toast('请填写账号和密码');return}
+  if(account.length<2){toast('账号至少2位');return}
+  if(password.length<6){toast('密码至少6位');return}
+  signIn(account,password);
+}
+function handleSignUp(){
+  const account=document.getElementById('authAccount').value.trim();
+  const password=document.getElementById('authPassword').value.trim();
+  if(!account||!password){toast('请填写账号和密码');return}
+  if(account.length<2){toast('账号至少2位');return}
+  if(password.length<6){toast('密码至少6位');return}
+  signUp(account,password);
+}
+
 // 初始化：检查本地登录状态
 (function initAuth(){
   if(isLoggedIn()){
