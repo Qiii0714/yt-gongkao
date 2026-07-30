@@ -320,8 +320,8 @@ body{padding-bottom:64px}
   #tlRoot{display:flex!important;position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg);color:var(--tx);font-family:inherit;z-index:1}
 
   /* ---------- Sidebar ---------- */
-  .tl-sidebar{width:230px;flex:0 0 230px;height:100%;background:var(--c);border-right:1px solid var(--b);display:flex;flex-direction:column;padding:20px 12px;gap:8px;transition:width .2s,flex-basis .2s}
-  .tl-sidebar.collapsed{width:70px;flex-basis:70px}
+  .tl-sidebar{width:160px;flex:0 0 160px;height:100%;background:var(--c);border-right:1px solid var(--b);display:flex;flex-direction:column;padding:20px 10px;gap:8px;transition:width .2s,flex-basis .2s}
+  .tl-sidebar.collapsed{width:56px;flex-basis:56px}
   .tl-logo{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;font-weight:800;font-size:17px;color:var(--gd);white-space:nowrap;overflow:hidden}
   .tl-logo .dot{width:32px;height:32px;flex:0 0 32px;border-radius:10px;background:linear-gradient(135deg,var(--g),var(--g2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800}
   .tl-sidebar.collapsed .tl-logo .txt{display:none}
@@ -888,7 +888,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260731_v56';
+const APP_VER='20260731_v57';
 // 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
 (function(){
   setInterval(()=>{
