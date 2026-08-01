@@ -888,7 +888,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260731_v57';
+const APP_VER='20260801_v58';
 // 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
 (function(){
   setInterval(()=>{
@@ -1318,10 +1318,10 @@ function save(){
   localStorage.setItem(GK,JSON.stringify(D));persistLiveTimer();autoSyncShare();autoCloudBackup();autoSyncUserData()
 }
 // 如果已开启分享，自动同步数据到云端（防抖，5秒内最多同步一次）
-function autoSyncShare(){
+function autoSyncShare(force){
   if(!_myShareCode)return;
   const now=Date.now();
-  if(now-_lastAutoSync<5000){clearTimeout(_autoSyncTimer);_autoSyncTimer=setTimeout(autoSyncShare,5000);return}
+  if(!force&&now-_lastAutoSync<5000){clearTimeout(_autoSyncTimer);_autoSyncTimer=setTimeout(()=>autoSyncShare(true),5000);return}
   _lastAutoSync=now;
   try{
     const nickname=document.getElementById('shareNick')?.value?.trim()||'考公人';
@@ -2134,6 +2134,7 @@ async function loadMyShare(){
 async function viewShare(){
   const code=document.getElementById('viewCode').value.trim().toUpperCase();
   if(code.length!==6){toast('请输入 6 位分享码');return}
+  _lastViewCode=code;
   try{
     const rows=await sbReq('GET','shares?code=eq.'+encodeURIComponent(code)+'&active=eq.true&select=*');
     if(!rows||!rows.length){toast('分享码无效或已过期');return}
@@ -2146,13 +2147,29 @@ async function viewShare(){
 
 function closeViewShare(){
   document.getElementById('viewShareOverlay').classList.add('hidden');
+  stopShareAutoRefresh();
 }
 
 function renderSharedData(sd,nickname){
   document.getElementById('viewShareOverlay').classList.remove('hidden');
   const hist=sd.history||{};
+  // 从原始记录实时计算每日时长（不依赖可能过时的 history 快照）
+  const dayMap={};
+  ['listenRecords','practiceRecords'].forEach(k=>Object.entries(sd[k]||{}).forEach(([dk,arr])=>{
+    if(!dayMap[dk])dayMap[dk]={dur:0,checked:false};
+    dayMap[dk].dur+=arr.reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0);
+  }));
+  Object.entries(sd.exams||{}).forEach(([dk,arr])=>{
+    if(!dayMap[dk])dayMap[dk]={dur:0,checked:false};
+    dayMap[dk].dur+=arr.reduce((s,e)=>s+(e.min||0),0);
+  });
+  // 合并 history 中已有但原始记录里没有的日期（老数据兼容）
+  Object.entries(hist).forEach(([dk,h])=>{
+    if(!dayMap[dk])dayMap[dk]={dur:h.duration||0,checked:!!h.checked};
+  });
+  Object.keys(dayMap).forEach(dk=>{dayMap[dk].dur=Math.round(dayMap[dk].dur);dayMap[dk].checked=dayMap[dk].dur>0});
   let totalDur=0,checkedDays=0;
-  Object.values(hist).forEach(h=>{if(h.checked)checkedDays++;totalDur+=h.duration||0});
+  Object.values(dayMap).forEach(dm=>{totalDur+=dm.dur;if(dm.checked)checkedDays++});
   let tqAll=0,cqAll=0;
   Object.values(sd.practiceRecords||{}).forEach(arr=>arr.forEach(r=>{tqAll+=r.totalQ||0;cqAll+=r.correctQ||0}));
   const accAll=tqAll>0?Math.round(cqAll/tqAll*100):null;
@@ -2161,9 +2178,9 @@ function renderSharedData(sd,nickname){
 
   const today=gdk();
   const shareTotalH=Math.round((totalDur/60)*10)/10;
-  const totalDays=Object.keys(hist).length;
+  const totalDays=Object.keys(dayMap).length;
   const shareAvgH=totalDays>0?(shareTotalH/totalDays).toFixed(1):'0.0';
-  const maxDayDur=Math.max(...Object.values(hist).map(h=>h.duration||0),0);
+  const maxDayDur=Math.max(...Object.values(dayMap).map(dm=>dm.dur||0),0);
   const shareMaxH=(maxDayDur/60).toFixed(1);
   
   // 今日学习记录
@@ -2277,7 +2294,7 @@ function renderSharedData(sd,nickname){
   const content=`
     <div style="text-align:center;margin-bottom:12px">
       <div style="font-size:18px;font-weight:700">📚 ${escHtml(nickname)}的学习数据</div>
-      <div style="font-size:12px;color:var(--t3)">更新于 ${new Date(sd.updatedAt||Date.now()).toLocaleString('zh-CN')}</div>
+      <div style="font-size:12px;color:var(--t3)">数据更新于 ${new Date(sd.updatedAt||Date.now()).toLocaleString('zh-CN')} · <span id="shareAutoRefreshFlag" style="color:var(--g)">🔄 自动同步中</span></div>
     </div>
     <div class="green-card" style="margin:0 0 12px 0">
       <div class="green-card-title">累计 ${checkedDays} 天</div>
@@ -2290,13 +2307,50 @@ function renderSharedData(sd,nickname){
     <div id="shareHistoryList" style="display:none;max-height:400px;overflow-y:auto">${historyHtml||'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">暂无历史记录</div>'}</div>
     <div style="font-size:13px;font-weight:700;margin:12px 0 8px">📅 每日学习时长</div>
     <div style="max-height:300px;overflow-y:auto">
-    ${Object.keys(hist).sort().reverse().slice(0,30).map(dk=>{
-      const h=hist[dk];const m=Math.round(h.duration||0);
-      return '<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--b);font-size:13px"><span>'+dk+(h.checked?' ✅':'')+'</span><span style="font-weight:600;color:var(--g)">'+fmtDur(m)+'</span></div>';
-    }).join('')||'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">暂无记录</div>'}
+    ${(() => {
+      const sortedDks=Object.keys(dayMap).sort().reverse().slice(0,30);
+      return sortedDks.length?sortedDks.map(dk=>{
+        const dm=dayMap[dk];
+        return '<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--b);font-size:13px"><span>'+dk+(dm.checked?' ✅':'')+'</span><span style="font-weight:600;color:var(--g)">'+fmtDur(dm.dur)+'</span></div>';
+      }).join(''):'<div style="font-size:13px;color:var(--t3);text-align:center;padding:16px">暂无记录</div>';
+    })()}
     </div>
   `;
   document.getElementById('viewShareContent').innerHTML=content;
+  // 启动自动刷新定时器（每 30 秒静默拉取最新数据）
+  startShareAutoRefresh();
+}
+
+// 分享查看页面自动刷新：每 30 秒拉取最新数据，分享者有新学习时自动同步
+let _shareAutoRefreshTimer=null;
+function startShareAutoRefresh(){
+  stopShareAutoRefresh();
+  _shareAutoRefreshTimer=setInterval(async()=>{
+    // 仅在分享查看面板可见时刷新
+    const ov=document.getElementById('viewShareOverlay');
+    if(ov&&ov.classList.contains('hidden'))return;
+    const code=_lastViewCode;
+    if(!code||code.length!==6)return;
+    try{
+      const rows=await sbReq('GET','shares?code=eq.'+encodeURIComponent(code)+'&active=eq.true&select=*');
+      if(!rows||!rows.length)return;
+      const sd=rows[0].data||rows[0];
+      if(!sd||!sd.history)return;
+      // 记住历史列表的展开/收起状态
+      const histEl=document.getElementById('shareHistoryList');
+      const histExpanded=histEl&&!histEl.classList.contains('hidden')&&histEl.style.display!=='none';
+      const histScroll=histEl?histEl.scrollTop:0;
+      renderSharedData(sd,rows[0].nickname||sd.nickname||'考公人');
+      // 恢复历史列表状态
+      if(histExpanded){
+        const newHist=document.getElementById('shareHistoryList');
+        if(newHist){newHist.style.display='block';document.getElementById('shareHistoryBtn').textContent='收起历史';newHist.scrollTop=histScroll}
+      }
+    }catch(e){}
+  },30000);
+}
+function stopShareAutoRefresh(){
+  if(_shareAutoRefreshTimer){clearInterval(_shareAutoRefreshTimer);_shareAutoRefreshTimer=null}
 }
 
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -3349,11 +3403,11 @@ function init(){
 init();
 
 // ===== 自动保存 =====
-// 页面关闭 / 切后台前：先把进行中计时独立落盘，再保存主数据
-window.addEventListener('beforeunload',()=>{persistLiveTimer();save()});
+// 页面关闭 / 切后台前：先把进行中计时独立落盘，再保存主数据，并强制同步分享数据
+window.addEventListener('beforeunload',()=>{persistLiveTimer();save();autoSyncShare(true)});
 // 切后台时落盘进行中计时；回到前台时刷新 UI（含平板端 tlRefresh）
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){persistLiveTimer();save();}
+  if(document.hidden){persistLiveTimer();save();autoSyncShare(true);}
   else{updStats();renderList();renderWeekly();if(typeof tlRefresh==='function')tlRefresh();}
 });
 // 听课备注实时保存
