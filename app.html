@@ -711,6 +711,8 @@ body{padding-bottom:64px}
   <div class="panel">
     <div class="panel-hd"><div class="panel-tt">✏️ 编辑学习记录</div><div class="panel-close" onclick="closeEdit()">✕</div></div>
     <div class="study-timer-subject" id="editSubject" style="text-align:center;margin-bottom:8px"></div>
+    <div class="study-subtitle">日期</div>
+    <input type="date" id="editDate" class="flat-input" style="margin-bottom:8px;padding:8px 12px">
     <div class="study-subtitle">学习模式</div>
     <div class="mode-grid" style="margin-bottom:12px">
       <div class="mode-card" id="editModeListen" onclick="switchEditMode('listen')"><div class="mode-icon">🎧</div><div class="mode-name">听课</div></div>
@@ -888,7 +890,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260801_v58';
+const APP_VER='20260801_v59';
 // 自动版本检测：每5分钟检查一次服务器上的版本文件，有更新自动刷新
 (function(){
   setInterval(()=>{
@@ -1482,7 +1484,8 @@ function renderList(){
 }
 
 // 提取渲染单条记录，复用于今日和历史
-function renderRecHTML(r){
+function renderRecHTML(r,opts){
+  opts=opts||{};
   const dur=Math.round(Math.max(0,(r.end-r.start)/60000));
   const ds=fmtDur(dur);
   const ts=fmtTime(r.start)+'-'+fmtTime(r.end);
@@ -1494,7 +1497,9 @@ function renderRecHTML(r){
     extra='<span style="font-size:11px;color:var(--o);margin-left:4px">'+r.correctQ+'/'+r.totalQ+'题 正确率'+Math.round(r.correctQ/r.totalQ*100)+'%</span>';
   }
   const rid=r.id||'';
-  return '<div class="study-item" data-id="'+rid+'"><div class="swipe-actions"><button class="swipe-btn swipe-edit" onclick="editRec(\''+rid+'\');closeSwipes()">编辑</button></div><div class="study-dot"></div><div class="study-info"><div class="study-name">'+esc(r.subject)+'</div><div style="font-size:11px;color:'+(r.type==='practice'?'var(--o)':'var(--g)')+';font-weight:500">['+tag+']'+extra+'</div></div><div class="study-right"><div class="study-time">'+ts+'</div><div class="study-dur">'+ds+'</div></div></div>';
+  // 历史记录：右侧加 ✏️ 提示可点击编辑
+  const hint=opts.history?'<span style="font-size:11px;color:var(--g);margin-left:6px;font-weight:600">✏️ 编辑</span>':'';
+  return '<div class="study-item" data-id="'+rid+'"><div class="swipe-actions"><button class="swipe-btn swipe-edit" onclick="editRec(\''+rid+'\');closeSwipes()">编辑</button></div><div class="study-dot"></div><div class="study-info"><div class="study-name">'+esc(r.subject)+'</div><div style="font-size:11px;color:'+(r.type==='practice'?'var(--o)':'var(--g)')+';font-weight:500">['+tag+']'+extra+hint+'</div></div><div class="study-right"><div class="study-time">'+ts+'</div><div class="study-dur">'+ds+'</div></div></div>';
 }
 
 let _showHistory=false;
@@ -1535,7 +1540,7 @@ function renderHistory(){
     recs.sort((a,b)=>a.start-b.start);
     const totalDur=recs.reduce((s,r)=>s+Math.max(0,(r.end-r.start)/60000),0);
     html+='<div style="padding:8px 16px;background:var(--g5);font-size:12px;font-weight:700;color:var(--t2);border-bottom:1px solid var(--b);display:flex;justify-content:space-between"><span>'+dk+'</span><span>'+fmtDur(Math.round(totalDur))+'</span></div>';
-    recs.forEach(r=>{html+=renderRecHTML(r);});
+    recs.forEach(r=>{html+=renderRecHTML(r,{history:true});});
   });
   l.innerHTML=html;
 }
@@ -1567,26 +1572,39 @@ function renderWeekly(){
   c.innerHTML=h;
 }
 
-// Swipe handling for study list
+// Swipe handling for study list (今日 + 历史 都支持)
 let _swipeEl=null,_swipeX=0,_swipeStartX=0,_swipeLocked=false;
 function closeSwipes(){document.querySelectorAll('.study-item.swiped').forEach(el=>el.classList.remove('swiped'))}
-document.getElementById('studyList').addEventListener('touchstart',e=>{
+function bindSwipe(listId){
+  const list=document.getElementById(listId);if(!list)return;
+  list.addEventListener('touchstart',e=>{
+    const item=e.target.closest('.study-item');if(!item)return;
+    if(item.classList.contains('swiped')){closeSwipes();return;}
+    closeSwipes();
+    _swipeEl=item;_swipeStartX=e.touches[0].clientX;_swipeX=0;_swipeLocked=false;
+  },{passive:false});
+  list.addEventListener('touchmove',e=>{
+    if(!_swipeEl||_swipeLocked)return;
+    const dx=e.touches[0].clientX-_swipeStartX;
+    if(dx>8){_swipeLocked=true;return;}
+    if(dx<-3){e.preventDefault();_swipeX=Math.min(130,Math.abs(dx));const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform='translateX('+(130-_swipeX)+'px)'}
+  },{passive:false});
+  list.addEventListener('touchend',()=>{
+    if(!_swipeEl)return;
+    if(_swipeX>25){_swipeEl.classList.add('swiped');const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform=''}
+    else{const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform=''}
+    _swipeEl=null;_swipeX=0;
+  });
+}
+bindSwipe('studyList');
+bindSwipe('historyList');
+
+// 历史记录单击：直接打开编辑弹窗（避免用户不会滑动）
+document.getElementById('historyList').addEventListener('click',e=>{
   const item=e.target.closest('.study-item');if(!item)return;
-  if(item.classList.contains('swiped')){closeSwipes();return;}
-  closeSwipes();
-  _swipeEl=item;_swipeStartX=e.touches[0].clientX;_swipeX=0;_swipeLocked=false;
-},{passive:false});
-document.getElementById('studyList').addEventListener('touchmove',e=>{
-  if(!_swipeEl||_swipeLocked)return;
-  const dx=e.touches[0].clientX-_swipeStartX;
-  if(dx>8){_swipeLocked=true;return;}
-  if(dx<-3){e.preventDefault();_swipeX=Math.min(130,Math.abs(dx));const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform='translateX('+(130-_swipeX)+'px)'}
-},{passive:false});
-document.getElementById('studyList').addEventListener('touchend',()=>{
-  if(!_swipeEl)return;
-  if(_swipeX>25){_swipeEl.classList.add('swiped');const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform=''}
-  else{const sa=_swipeEl.querySelector('.swipe-actions');if(sa)sa.style.transform=''}
-  _swipeEl=null;_swipeX=0;
+  if(e.target.closest('.swipe-actions'))return; // 点编辑按钮不重复触发
+  const id=item.getAttribute('data-id');
+  if(id){closeSwipes();editRec(id)}
 });
 
 // Edit / Delete records (searches all dates)
@@ -1606,9 +1624,10 @@ function editRec(id){
   const found=findRecById(id);
   if(!found)return;
   const {rec,dateKey,kind}=found;
-  curEdit={id,type:rec.type,oldType:rec.type,dateKey};
+  curEdit={id,type:rec.type,oldType:rec.type,dateKey,oldDateKey:dateKey};
   document.getElementById('editSubject').textContent=rec.subject;
   switchEditMode(rec.type);
+  document.getElementById('editDate').value=dateKey;
   const st=new Date(rec.start),en=new Date(rec.end);
   document.getElementById('editStart').value=String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0');
   document.getElementById('editEnd').value=String(en.getHours()).padStart(2,'0')+':'+String(en.getMinutes()).padStart(2,'0');
@@ -1631,30 +1650,34 @@ function switchEditMode(m){
 function closeEdit(){document.getElementById('editOverlay').classList.add('hidden');curEdit=null}
 function saveEdit(){
   if(!curEdit)return;
-  const t=curEdit.dateKey||gdk();
+  const oldTk=curEdit.oldDateKey||curEdit.dateKey||gdk();
+  const newTk=document.getElementById('editDate').value||oldTk;
   const oldType=curEdit.oldType||curEdit.type;
   // 从原始数组查找记录
-  let oldArr=oldType==='listen'?D.listenRecords[t]:D.practiceRecords[t];
+  let oldArr=oldType==='listen'?D.listenRecords[oldTk]:D.practiceRecords[oldTk];
   let rec=(oldArr||[]).find(r=>r.id===curEdit.id);
   if(!rec){closeEdit();return}
-  // 如果类型变了，从旧数组移除，加入新数组
-  if(curEdit.type!==oldType){
+  // 如果类型或日期变了，从旧数组移除，加入新数组
+  if(curEdit.type!==oldType||newTk!==oldTk){
     oldArr.splice(oldArr.indexOf(rec),1);
-    if(!oldArr.length)delete D[oldType==='listen'?'listenRecords':'practiceRecords'][t];
-    let newArr=curEdit.type==='listen'?D.listenRecords[t]:D.practiceRecords[t];
-    if(!newArr){newArr=[];D[curEdit.type==='listen'?'listenRecords':'practiceRecords'][t]=newArr;}
+    if(!oldArr.length)delete D[oldType==='listen'?'listenRecords':'practiceRecords'][oldTk];
+    let newArr=curEdit.type==='listen'?D.listenRecords[newTk]:D.practiceRecords[newTk];
+    if(!newArr){newArr=[];D[curEdit.type==='listen'?'listenRecords':'practiceRecords'][newTk]=newArr;}
     newArr.push(rec);
+    recomputeDay(oldTk);
   }
   const sv=document.getElementById('editStart').value||'09:00',ev=document.getElementById('editEnd').value||'10:00';
   const [sh,sm]=sv.split(':').map(Number),[eh,em]=ev.split(':').map(Number);
-  let start=new Date(t+'T00:00:00');start.setHours(sh||0,sm||0,0,0);
-  let end=new Date(t+'T00:00:00');end.setHours(eh||0,em||0,0,0);
+  let start=new Date(newTk+'T00:00:00');start.setHours(sh||0,sm||0,0,0);
+  let end=new Date(newTk+'T00:00:00');end.setHours(eh||0,em||0,0,0);
   if(end.getTime()<=start.getTime())end.setTime(end.getTime()+86400000);
   rec.start=start.getTime();rec.end=end.getTime();
   rec.type=curEdit.type;
   if(curEdit.type==='listen'){rec.note=document.getElementById('editNote').value;delete rec.totalQ;delete rec.correctQ;}
   else{rec.totalQ=parseInt(document.getElementById('editTotal').value)||0;rec.correctQ=parseInt(document.getElementById('editCorrect').value)||0;delete rec.note;}
-  recomputeDay(t);
+  recomputeDay(newTk);
+  curEdit.dateKey=newTk;
+  curEdit.oldDateKey=newTk;
   save();closeEdit();updStats();renderList();renderWeekly();
   if(_showHistory)renderHistory();
   toast('✅ 已保存');
