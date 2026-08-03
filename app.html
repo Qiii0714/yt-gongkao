@@ -890,7 +890,7 @@ body{padding-bottom:64px}
 <div class="toast hidden" id="toast"></div>
 
 <script>
-const APP_VER='20260802_v60';
+const APP_VER='20260803_v61';
 // 自动版本检测：页面加载时立即检查一次，之后每5分钟检查一次
 (function(){
   const checkVer=()=>{
@@ -1779,11 +1779,8 @@ function initSbClient(){
 async function sbReq(method,path,body){
   const cl=initSbClient();
   if(!cl)throw new Error('未配置Supabase');
-  const hd={'Content-Type':'application/json','apikey':cl.key,'Authorization':'Bearer '+cl.key,'Prefer':'return=representation'};
-  // GET 请求加时间戳，避免任何中间层缓存
-  if(method==='GET'&&path.indexOf('?')>=0)path+='&_t='+Date.now();
-  else if(method==='GET')path+='?_t='+Date.now();
-  const opts={method,headers:hd};
+  const hd={'Content-Type':'application/json','apikey':cl.key,'Authorization':'Bearer '+cl.key,'Prefer':'return=representation','Cache-Control':'no-cache, no-store','Pragma':'no-cache'};
+  const opts={method,headers:hd,cache:'no-store'};
   if(body)opts.body=JSON.stringify(body);
   const r=await fetch(cl.url+'/rest/v1/'+path,opts);
   if(!r.ok){const t=await r.text();throw new Error(r.status+' '+t)}
@@ -2171,9 +2168,11 @@ async function viewShare(){
     renderSharedData(sd,rows[0].nickname||sd.nickname||'考公人');
     saveViewHistory(code);
   }catch(e){
-    // 网络失败时自动重试一次
+    // 网络失败时自动重试一次（最多 3 次）
     console.warn('viewShare 失败，1.5 秒后重试:',e.message);
-    setTimeout(async()=>{
+    let retryCount=0;
+    const tryOnce=async()=>{
+      retryCount++;
       try{
         const rows=await sbReq('GET','shares?code=eq.'+encodeURIComponent(code)+'&active=eq.true&select=*');
         if(!rows||!rows.length){toast('分享码无效或已过期');return}
@@ -2181,8 +2180,13 @@ async function viewShare(){
         if(!sd||!sd.history){toast('分享数据为空');return}
         renderSharedData(sd,rows[0].nickname||sd.nickname||'考公人');
         saveViewHistory(code);
-      }catch(e2){toast('查看失败，请检查网络');console.error(e2)}
-    },1500);
+        if(retryCount>1)toast('✅ 重试成功');
+      }catch(e2){
+        if(retryCount<3){setTimeout(tryOnce,1500)}
+        else{toast('查看失败: '+(e2.message||'网络错误'));console.error(e2)}
+      }
+    };
+    setTimeout(tryOnce,1500);
   }
 }
 
